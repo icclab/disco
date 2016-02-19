@@ -34,26 +34,26 @@ In order to get the SM working, you have to make some preparations to your OpenS
 
 1. First, you have to create a volume with the necessary software installed already. This software is basically in the apt packages python git python-pip and python-dev. If you do it on a different package management system, you need to ensure that you can execute python, you have the dev files for python and you can clone git repositories. Plus you have to install code from two Git repositories as well for the SO.
 
-I ran the following bash command for setting up the VM:
+    I ran the following bash command for setting up the VM:
 
-```
-#!/bin/bash
-{
-SECONDS=0
-apt-get update
-apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" dist-upgrade
-apt-get install -y python git python-pip python-dev
-cd ~
-git clone https://github.com/icclab/hurtle_cc_sdk.git
-cd ~/hurtle_cc_sdk
-pip install --upgrade requests
-python setup.py install
-cd ~
-git clone https://github.com/icclab/hurtle_sm.git
-cd ~/hurtle_sm
-python setup.py install
-} 2> ~/error.log | tee ~/debug.log
-```
+    ```
+    #!/bin/bash
+    {
+    SECONDS=0
+    apt-get update
+    apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" dist-upgrade
+    apt-get install -y python git python-pip python-dev
+    cd ~
+    git clone https://github.com/icclab/hurtle_cc_sdk.git
+    cd ~/hurtle_cc_sdk
+    pip install --upgrade requests
+    python setup.py install
+    cd ~
+    git clone https://github.com/icclab/hurtle_sm.git
+    cd ~/hurtle_sm
+    python setup.py install
+    } 2> ~/error.log | tee ~/debug.log
+    ```
 2. As soon as this is done, you have to create a snapshot of the volume and save it as a volume on OpenStack. This volume will be the basis of your SO's VM.
 
 3. You also need to upload your SO to a publicly available Git repository as the VM needs to be able to clone it.
@@ -66,9 +66,9 @@ python setup.py install
 
 5. Now, you're ready to power up the SM. But before you do that, please take a look at the user_data part within the Heat template that will be deployed by the SM: maybe you have to make changes to the path, the Git repository's address, and so on. The following command will create a SO for you (don't worry, I will explain the details immediately)
 
-```
-curl -v -X POST http://127.0.0.1:8888/haas/ -H 'Category: haas; scheme="http://schemas.cloudcomplab.ch/occi/sm#"; class="kind";' -H 'content-type: text/occi' -H 'X-Auth-Token: 137f5775f01245588c936dd05b7c2893' -H 'X-Tenant-Name: mesz' -H 'X-OCCI-Attribute: icclab.haas.debug.donotdeploy="False",icclab.haas.master.createvolumeforattachment="False",icclab.haas.sm.sofloatingipid="c03eb859-99f7-49f7-9316-dffd5af8c299",icclab.haas.sm.sofloatingip="160.85.4.205",icclab.haas.rootfolder="/root/testso/bundle/data",icclab.haas.master.sshkeyname="MNMBA2"'
-```
+    ```
+    curl -v -X POST http://127.0.0.1:8888/haas/ -H 'Category: haas; scheme="http://schemas.cloudcomplab.ch/occi/sm#"; class="kind";' -H 'content-type: text/occi' -H 'X-Auth-Token: 137f5775f01245588c936dd05b7c2893' -H 'X-Tenant-Name: mesz' -H 'X-OCCI-Attribute: icclab.haas.debug.donotdeploy="False",icclab.haas.master.createvolumeforattachment="False",icclab.haas.sm.sofloatingipid="c03eb859-99f7-49f7-9316-dffd5af8c299",icclab.haas.sm.sofloatingip="160.85.4.205",icclab.haas.rootfolder="/root/testso/bundle/data",icclab.haas.master.sshkeyname="MNMBA2"'
+    ```
 
    1. You have to update the IP and the service type which is to be created. (here, it's haas) You specified this in the *service_manifest.json* file of the SO.
    2. the X-Auth-Token and X-Tenant-Name headers are the credentials you want to use to deploy the computing cluster from out of the SO.
@@ -78,20 +78,20 @@ curl -v -X POST http://127.0.0.1:8888/haas/ -H 'Category: haas; scheme="http://s
 
 7. You can list the created SO instanceswith the following command
 
-```
-curl -v -X GET http://127.0.0.1:8888/haas/ -H 'Accept: text/occi' -H 'X-Auth-Token: 137f5775f01245588c936dd05b7c2893' -H 'X-Tenant-Name: mesz'
-```
+    ```
+    curl -v -X GET http://127.0.0.1:8888/haas/ -H 'Accept: text/occi' -H 'X-Auth-Token: 137f5775f01245588c936dd05b7c2893' -H 'X-Tenant-Name: mesz'
+    ```
 
-    1. Here, you already know all the parameters that you have to append insert.
+   1. Here, you already know all the parameters that you have to append insert.
 
 8. If you would like to delete the SO again, the following command will help you
 
-```
-curl -v -X DELETE http://127.0.0.1:8888/haas/3850dc24-557b-44c0-b5e1-1fef0b6775f9 -H 'Category: haas; scheme="http://schemas.cloudcomplab.ch/occi/sm#"; class="kind";' -H 'content-type: text/occi' -H 'X-Auth-Token: 137f5775f01245588c936dd05b7c2893' -H 'X-Tenant-Name: mesz' -H 'X-OCCI-Attribute: icclab.haas.sm.sofloatingip="160.85.4.205"'
-```
+    ```
+    curl -v -X DELETE http://127.0.0.1:8888/haas/3850dc24-557b-44c0-b5e1-1fef0b6775f9 -H 'Category: haas; scheme="http://schemas.cloudcomplab.ch/occi/sm#"; class="kind";' -H 'content-type: text/occi' -H 'X-Auth-Token: 137f5775f01245588c936dd05b7c2893' -H 'X-Tenant-Name: mesz' -H 'X-OCCI-Attribute: icclab.haas.sm.sofloatingip="160.85.4.205"'
+    ```
 
-    1. This one is a little more complicated, so let's look at it in more detail: the IP address is still the same, but everything after the service type is generated by the SM. You can get that address over the command at point 7.
-    2. Tenant name and token are the same as before, but you have to provide the IP address of the SO's VM as data retention within the SM is based on the SO's IP.
+   1. This one is a little more complicated, so let's look at it in more detail: the IP address is still the same, but everything after the service type is generated by the SM. You can get that address over the command at point 7.
+   2. Tenant name and token are the same as before, but you have to provide the IP address of the SO's VM as data retention within the SM is based on the SO's IP.
 
 9. After this last step, you can check with the command at point 7 that the SO has been deleted and the resources freed. You can also double check that information on OpenStack Horizon. (Orchestration -> Stacks)
 
