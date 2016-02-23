@@ -58,13 +58,19 @@ In order to get the SM working, you have to make some preparations to your OpenS
 
 3. You also need to upload your SO to a publicly available Git repository as the VM needs to be able to clone it.
 
-4. Some more things you have to setup within OpenStack in order to launch a VM. These are:
+4. Now comes the sm.cfg file located in the etc subfolder. There is a section openstackso at the bottom which has to be filled in accordingly. The heat_endpoint and tenantname are the entries for the OpenStack installation where the SO should be deployed. At heat_endpoint, the complete URL has to be written including http(s), the port and up to the tenant ID.
+
+   sogitaddress is the URL of the git repository where the SO is located.
+
+   soapplication is the path where the application (which has to be executed as SO) is located. The reason for this entry is that it is not known where the application is located within the git repository. I didn't want to require a special directory structure. The only thing you need to know is the location where the repository is cloned to which is the home folder of root.
+
+5. Some more things you have to setup within OpenStack in order to launch a VM. These are:
    * creating a network and a subnet and insert their IDs into the HOT template within the openstack_so_manager.py file
    * you have to adjust the image name within the same template to the name you gave the volume before
    * adjust the SSH public key name (you need an SSH public key within OpenStack)
    * also update the flavor so that it's big enough for the created volume but still as small as possible (only the SO will be executed on this VM)
 
-5. Now, you're ready to power up the SM. But before you do that, please take a look at the user_data part within the Heat template that will be deployed by the SM: maybe you have to make changes to the path, the Git repository's address, and so on. The following command will create a SO for you (don't worry, I will explain the details immediately)
+6. Now, you're ready to power up the SM. But before you do that, please take a look at the user_data part within the Heat template that will be deployed by the SM: maybe you have to make changes to the path, the Git repository's address, and so on. The following command will create a SO for you (don't worry, I will explain the details immediately)
 
     ```
     curl -v -X POST http://127.0.0.1:8888/haas/ -H 'Category: haas; scheme="http://schemas.cloudcomplab.ch/occi/sm#"; class="kind";' -H 'content-type: text/occi' -H 'X-Auth-Token: 137f5775f01245588c936dd05b7c2893' -H 'X-Tenant-Name: mesz' -H 'X-OCCI-Attribute: icclab.haas.debug.donotdeploy="False",icclab.haas.master.createvolumeforattachment="False",icclab.haas.sm.sofloatingipid="c03eb859-99f7-49f7-9316-dffd5af8c299",icclab.haas.sm.sofloatingip="160.85.4.205",icclab.haas.rootfolder="/root/testso/bundle/data",icclab.haas.master.sshkeyname="MNMBA2"'
@@ -74,9 +80,9 @@ In order to get the SM working, you have to make some preparations to your OpenS
    2. the X-Auth-Token and X-Tenant-Name headers are the credentials you want to use to deploy the computing cluster from out of the SO.
    3. with the X-OCCI-Attribute header, you send the required configuration settings to the SO and the SM. They will be forwarded to the SO automatically. Here, you will have to update the settings icclab.haas.sm.sofloatingipid and icclab.haas.sm.sofloatingip which are used by the SM: the first one refers to the ID of the floating IP which has to be connected to the SO's VM, the second is the coupled IP address.
 
-6. Lean back and wait, until deployment has finished. Currently, there's no possibility of checking the deployment status over the SM, but you can have a look at the stack status within OpenStack's Horizon.
+7. Lean back and wait, until deployment has finished. Currently, there's no possibility of checking the deployment status over the SM, but you can have a look at the stack status within OpenStack's Horizon.
 
-7. You can list the created SO instanceswith the following command
+8. You can list the created SO instanceswith the following command
 
     ```
     curl -v -X GET http://127.0.0.1:8888/haas/ -H 'Accept: text/occi' -H 'X-Auth-Token: 137f5775f01245588c936dd05b7c2893' -H 'X-Tenant-Name: mesz'
@@ -84,7 +90,7 @@ In order to get the SM working, you have to make some preparations to your OpenS
 
    1. Here, you already know all the parameters that you have to append insert.
 
-8. If you would like to delete the SO again, the following command will help you
+9. If you would like to delete the SO again, the following command will help you
 
     ```
     curl -v -X DELETE http://127.0.0.1:8888/haas/3850dc24-557b-44c0-b5e1-1fef0b6775f9 -H 'Category: haas; scheme="http://schemas.cloudcomplab.ch/occi/sm#"; class="kind";' -H 'content-type: text/occi' -H 'X-Auth-Token: 137f5775f01245588c936dd05b7c2893' -H 'X-Tenant-Name: mesz' -H 'X-OCCI-Attribute: icclab.haas.sm.sofloatingip="160.85.4.205"'
@@ -93,8 +99,27 @@ In order to get the SM working, you have to make some preparations to your OpenS
    1. This one is a little more complicated, so let's look at it in more detail: the IP address is still the same, but everything after the service type is generated by the SM. You can get that address over the command at point 7.
    2. Tenant name and token are the same as before, but you have to provide the IP address of the SO's VM as data retention within the SM is based on the SO's IP.
 
-9. After this last step, you can check with the command at point 7 that the SO has been deleted and the resources freed. You can also double check that information on OpenStack Horizon. (Orchestration -> Stacks)
+10. After this last step, you can check with the command at point 7 that the SO has been deleted and the resources freed. You can also double check that information on OpenStack Horizon. (Orchestration -> Stacks)
 
 ## How to write your own SM
 
-nothing yet...
+The SM consists of 7 python classes which are dedicated to the lifecycles of the SO. These are the following:
+* Init
+* Activate
+* Deploy
+* Provision
+* Retrieve
+* Update
+* Destroy
+
+Of course, they can have any name, but they have to be made known to the backend as the mentioned names. (_from path.to.dir import bubbleclass as Init_, ...) These classes are usually all declared/implemented in one single file within the sm/managers subfolder. The basic SM, which is implemented to cooperate with OpenShift, can be found in the file sm/managers/so_manager.py. Each class has to be a subclass of sm.managers.generic.Task and it needs the method run(). This method is always called when the according lifecycle is to be executed.
+
+Important note: these classes are independent of one another and they shouldn't exchange data over global variables. The reason for this is that an indefinite amount of SO can be instantiated in each SM. If one global variable is set in a class instance, it will be overwritten immediately as soon as the next SO has reached the same (or a similar) point where that variable is written.
+
+The current implementation of the SM over OpenStack-deployed SO instances is realised with global variables, though the problem with overwriting is solved by referring to the values with the IP address of the SO's VM. This might not be the most elegant solution, but it does the work.
+
+The backend itself will use the classes for the lifecycles. This means that they have to be imported conditionally, depending on which type of SM is to be used. This is done at the beginning of file sm/backends.py. In plain language, the manager from the section general within the sm.cfg file is compared with pre-defined values and the according classes are included and called Init, Activate, ...
+
+The classes are always initialised with the Resource entity (which amongst others contains the attributes given to the SM) and the dictionary extras with information about the user and the SM process. The method run() is always called when the according state is reached. Within this method, the actual work has to be done.
+
+...to be continued...
