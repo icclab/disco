@@ -60,9 +60,9 @@ In order to get the SM working, you have to make some preparations to your OpenS
 
 4. Now comes the sm.cfg file located in the etc subfolder. There is a section openstackso at the bottom which has to be filled in accordingly. The heat_endpoint and tenantname are the entries for the OpenStack installation where the SO should be deployed. At heat_endpoint, the complete URL has to be written including http(s), the port and up to the tenant ID.
 
-   sogitaddress is the URL of the git repository where the SO is located.
+    sogitaddress is the URL of the git repository where the SO is located.
 
-   soapplication is the path where the application (which has to be executed as SO) is located. The reason for this entry is that it is not known where the application is located within the git repository. I didn't want to require a special directory structure. The only thing you need to know is the location where the repository is cloned to which is the home folder of root.
+    soapplication is the path where the application (which has to be executed as SO) is located. The reason for this entry is that it is not known where the application is located within the git repository. I didn't want to require a special directory structure. The only thing you need to know is the location where the repository is cloned to which is the home folder of root.
 
 5. Some more things you have to setup within OpenStack in order to launch a VM. These are:
    * creating a network and a subnet and insert their IDs into the HOT template within the openstack_so_manager.py file
