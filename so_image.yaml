@@ -1,0 +1,43 @@
+heat_template_version: 2014-10-16
+
+parameters:
+resources:
+  hadoop_port:
+    type: OS::Neutron::Port
+    properties:
+      network: e6340b75-252a-4b71-a810-418f3c3c006d
+      fixed_ips:
+        - subnet_id: 17b5a076-7699-4658-82cd-c844a23bbbe7
+#      security_groups: ["faf51021-62cc-4fb8-9163-a2b334ff7a57"]
+
+  hadoop_master:
+    type: OS::Nova::Server
+    properties:
+      name: testso
+      image: Ubuntu-Trusty-Tahr-14.04.2-LTS
+      flavor: m1.tiny
+      key_name: MNMBA2
+      networks:
+        - port: { get_resource: hadoop_port }
+      user_data: |
+        #!/bin/bash
+        {
+        SECONDS=0
+        apt-get update
+        apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" dist-upgrade
+        apt-get install -y python git python-pip python-dev
+        cd ~
+        git clone https://github.com/icclab/hurtle_cc_sdk.git
+        cd ~/hurtle_cc_sdk
+        pip install --upgrade requests
+        python setup.py install
+        cd ~
+        git clone https://github.com/icclab/hurtle_sm.git
+        cd ~/hurtle_sm
+        python setup.py install
+        cd ~
+        git clone https://github.com/Pentadactylus/testso.git
+        python ~/testso/bundle/wsgi/application
+        } 2> ~/error.log | tee ~/debug.log
+
+outputs:
