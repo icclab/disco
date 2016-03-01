@@ -221,9 +221,9 @@ resources:
   so_port:
     type: OS::Neutron::Port
     properties:
-      network: e6340b75-252a-4b71-a810-418f3c3c006d
+      network: 017483a6-507a-4dd1-8752-b30c551d1efe 
       fixed_ips:
-        - subnet_id: 17b5a076-7699-4658-82cd-c844a23bbbe7
+        - subnet_id: 392da99c-2f5c-4873-bd9c-ea430a5e593d
       security_groups: [{ get_resource: so_sec_group }]
 
   floating_ip_assoc:
@@ -245,27 +245,27 @@ resources:
     type: OS::Nova::Server
     properties:
       name: testso_$randomstring$
-      image: serviceorchestrator # Ubuntu-Trusty-Tahr-14.04.2-LTS
-      flavor: m1.smaller # m1.tiny
-      key_name: MNMBA2
+      image: Ubuntu Trusty 14.04 (SWITCHengines)
+      flavor: c1.small
+      key_name: macsp
       networks:
         - port: { get_resource: so_port }
       user_data: |
         #!/bin/bash
         {
         SECONDS=0
-        # apt-get update
-        # apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" dist-upgrade
-        # apt-get install -y python git python-pip python-dev
-        # cd ~
-        # git clone https://github.com/icclab/hurtle_cc_sdk.git
-        # cd ~/hurtle_cc_sdk
-        # pip install --upgrade requests
-        # python setup.py install
-        # cd ~
-        # git clone https://github.com/icclab/hurtle_sm.git
-        # cd ~/hurtle_sm
-        # python setup.py install
+        apt-get update
+        apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" dist-upgrade
+        apt-get install -y python git python-pip python-dev
+        cd ~
+        git clone https://github.com/icclab/hurtle_cc_sdk.git
+        cd ~/hurtle_cc_sdk
+        pip install --upgrade requests
+        python setup.py install
+        cd ~
+        git clone https://github.com/icclab/hurtle_sm.git
+        cd ~/hurtle_sm
+        python setup.py install
         cd ~
         git clone $sogitaddress$
         export DESIGN_URI='$design_uri$'
