@@ -14,7 +14,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-from setuptools import setup
+from setuptools import setup, find_packages
 
 setup(
     name='sm',
@@ -24,7 +24,7 @@ setup(
     author_email='edmo@zhaw.ch',
     url='http://blog.zhaw.ch/icclab',
     license='Apache 2.0',
-    package_dir={ 'sm': 'sm', 'heatclient': 'heatclient'},
+    packages=find_packages(exclude=["*.tests", "*.tests.*", "tests.*", "tests", "example", "etc"]),
     install_requires=[
         'pyssf',
         'requests',
