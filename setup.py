@@ -24,7 +24,7 @@ setup(
     author_email='edmo@zhaw.ch',
     url='http://blog.zhaw.ch/icclab',
     license='Apache 2.0',
-    package_dir={ 'sm': 'sm', 'heatclient': 'heatclient'},
+    packages=['sm', 'sm.so'],
     install_requires=[
         'pyssf',
         'requests',

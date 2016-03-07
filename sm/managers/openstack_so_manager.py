@@ -218,40 +218,12 @@ class Deploy(Task):
 
 parameters:
 resources:
-  so_network:
-    type: OS::Neutron::Net
-    properties:
-      name: so_net_$randomstring$
-
-  so_subnet:
-    type: OS::Neutron::Subnet
-    properties:
-      network: { get_resource: so_network }
-      cidr: 192.168.19.0/24
-      gateway_ip: 192.168.19.1
-      dns_nameservers: ["8.8.8.8","8.8.4.4"]
-      allocation_pools:
-        - start: 192.168.19.2
-          end: 192.168.19.254
-
-  so_router:
-    type: OS::Neutron::Router
-    properties:
-      external_gateway_info:
-        network: external-net
-
-  router_interface:
-    type: OS::Neutron::RouterInterface
-    properties:
-      router_id: { get_resource: so_router }
-      subnet_id: { get_resource: so_subnet }
-
   so_port:
     type: OS::Neutron::Port
     properties:
-      network: { get_resource: so_network }
+      network: 017483a6-507a-4dd1-8752-b30c551d1efe 
       fixed_ips:
-        - subnet_id: { get_resource: so_subnet }
+        - subnet_id: 392da99c-2f5c-4873-bd9c-ea430a5e593d
       security_groups: [{ get_resource: so_sec_group }]
 
   floating_ip_assoc:
@@ -263,19 +235,19 @@ resources:
   so_sec_group:
     type: OS::Neutron::SecurityGroup
     properties:
-      name: so_sg_$randomstring$
+#      name: so_sg_$randomstring$
       rules: [
       {"direction":"ingress","protocol":"tcp","port_range_min":"22","port_range_max":"22"},
       {"direction":"ingress","protocol":"tcp","port_range_min":"8080","port_range_max":"8080"},
       ]
 
-  so_master:
+  hadoop_master:
     type: OS::Nova::Server
     properties:
       name: testso_$randomstring$
-      image: $sovmimagename$
-      flavor: $sovmflavor$
-      key_name: $sovmsshpublickey$
+      image: Ubuntu Trusty 14.04 (SWITCHengines)
+      flavor: c1.small
+      key_name: macsp
       networks:
         - port: { get_resource: so_port }
       user_data: |
@@ -310,12 +282,8 @@ outputs:
         template = template.replace("$randomstring$",randomstring)
         template = template.replace("$sogitaddress$",CONFIG.get('openstackso','sogitaddress'))
         template = template.replace("$soapplication$",CONFIG.get('openstackso','soapplication'))
-        template = template.replace("$sovmimagename$",CONFIG.get('openstackso','sovmimagename'))
-        template = template.replace("$sovmflavor$",CONFIG.get('openstackso','sovmflavor'))
-        template = template.replace("$sovmsshpublickey$",CONFIG.get('openstackso','sovmsshpublickey'))
 
-
-        LOG.debug('deploying template:\n'+template)
+        LOG.debug('deploying template '+template)
 
         # deyloy the Heat orchestration template on OpenStack:
         token = self.extras['token']
