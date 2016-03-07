@@ -276,6 +276,7 @@ resources:
       image: $sovmimagename$
       flavor: $sovmflavor$
       key_name: $sovmsshpublickey$
+      user_data_format: RAW
       networks:
         - port: { get_resource: so_port }
       user_data: |
