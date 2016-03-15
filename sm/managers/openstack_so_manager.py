@@ -23,8 +23,8 @@ from sm.retry_http import http_retriable_request
 import time
 import socket
 import requests
-import copy
 import json
+from os import environ
 
 __author__ = 'balazs'
 
@@ -316,7 +316,7 @@ outputs:
         template = template.replace("$sovmsshpublickey$",CONFIG.get('openstackso','sovmsshpublickey'))
 
 
-        LOG.debug('deploying template:\n'+template)
+        # LOG.debug('deploying template:\n'+template)
 
         # deyloy the Heat orchestration template on OpenStack:
         token = self.extras['token']
@@ -328,7 +328,15 @@ outputs:
             raise Exception('No design_uri parameter supplied in sm.cfg')
 
         # get the connection handle to keytone
-        heatClient = client.Client(HEAT_VERSION, design_uri, token=token)
+        tenant = environ.get('HTTP_X_TENANT_NAME', '')
+        username = environ.get('HTTP_X_USERNAME', '')
+        password = environ.get('HTTP_X_PASSWORD', '')
+
+        if token!='' and token!=None:
+            heatClient = client.Client(HEAT_VERSION, design_uri, token=token)
+        else:
+            heatClient = client.Client(HEAT_VERSION, design_uri, username=username, tenant_name=tenant, password=password)
+
         curStackName = 'so_'+randomstring
         body = {
             'stack_name': curStackName,

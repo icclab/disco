@@ -44,6 +44,8 @@ from bson.objectid import ObjectId
 from sm.mongo_key_replacer import KeyTransform
 from ConfigParser import NoSectionError
 
+# from wsgiproxy.app import WSGIProxyApplication
+
 __author__ = 'andy'
 
 
@@ -181,19 +183,41 @@ class MApplication(Application):
             raise HTTPError(400, 'No X-Auth-Token header supplied.')
 
         tenant = environ.get('HTTP_X_TENANT_NAME', '')
-
-        if tenant == '':
-            LOG.error('No X-Tenant-Name header supplied.')
-            raise HTTPError(400, 'No X-Tenant-Name header supplied.')
+        username = environ.get('HTTP_X_USERNAME', '')
+        password = environ.get('HTTP_X_PASSWORD', '')
 
         design_uri = CONFIG.get('service_manager', 'design_uri', '')
         if design_uri == '':
                 LOG.fatal('No design_uri parameter supplied in sm.cfg')
                 raise Exception('No design_uri parameter supplied in sm.cfg')
 
+        LOG.debug("design uri: "+design_uri+", password: "+password+", username: "+username)
+
         auth = KeyStoneAuthService(design_uri)
-        if not auth.verify(token=token, tenant_name=tenant):
-            raise HTTPError(401, 'Token is not valid. You likely need an updated token.')
+#        auth.verify()
+
+        # at the first position, tenant must not be checked as tenant is needed for the following case as well
+        # first if statement checks username / password authentication
+        if username != '' or password != '':
+            if tenant != '' and username != '' and password != '':
+                if not auth.verify( tenant_name=tenant, username=username, password=password ):
+                    LOG.error('Tenant name / username / password combination not accepted.')
+                    raise HTTPError(401, 'Tenant name / username / password combination not accepted.')
+            else:
+                LOG.error('Tenant name, username or password not given.')
+                raise HTTPError(400, 'HTTP_X_TENANT_NAME, HTTP_X_USERNAME or HTTP_X_PASSWORD not supplied.')
+        # if token authentification was chosen, it has to be validated here
+        elif token != '':
+            if tenant != '':
+                if not auth.verify(token=token, tenant_name=tenant):
+                    LOG.error('Token has probably expired')
+                    raise HTTPError(401, 'Token is not valid. You likely need an updated token.')
+            else:
+                LOG.error('No X-Tenant-Name header supplied.')
+                raise HTTPError(400, 'No X-Tenant-Name header supplied.')
+        else:
+            LOG.error('Neither {HTTP_X_TENANT_NAME,HTTP_X_USERNAME,HTTP_X_PASSWORD} nor {HTTP_X_TENANT_NAME,HTTP_X_AUTH_TOKEN} combination for authentication supplied.')
+            raise HTTPError(400, '{HTTP_X_TENANT_NAME,HTTP_X_USERNAME,HTTP_X_PASSWORD}')
 
         return self._call_occi(environ, response, token=token, tenant_name=tenant, registry=self.registry)
 
