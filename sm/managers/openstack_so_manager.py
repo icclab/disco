@@ -238,7 +238,7 @@ resources:
     type: OS::Neutron::Router
     properties:
       external_gateway_info:
-        network: external-net
+        network: $networkexternal$
 
   router_interface:
     type: OS::Neutron::RouterInterface
@@ -314,7 +314,7 @@ outputs:
         template = template.replace("$sovmimagename$",CONFIG.get('openstackso','sovmimagename'))
         template = template.replace("$sovmflavor$",CONFIG.get('openstackso','sovmflavor'))
         template = template.replace("$sovmsshpublickey$",CONFIG.get('openstackso','sovmsshpublickey'))
-
+        template = template.replace("$networkexternal$",CONFIG.get('openstackso','networkexternal'))
 
         # LOG.debug('deploying template:\n'+template)
 
