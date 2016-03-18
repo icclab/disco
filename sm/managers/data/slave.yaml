@@ -1,0 +1,23 @@
+############### slave $slavenumber$ ################
+  hadoop_slave_port_$slavenumber$:
+    type: OS::Neutron::Port
+    properties:
+      name: hadoop_slave_port_$slavenumber$
+      network: { get_resource: hadoop_network }
+      fixed_ips:
+        - subnet_id: { get_resource: hadoop_subnet }
+      security_groups: [{ get_resource: hadoop_sec_group }]
+
+  hadoop_slave_$slavenumber$:
+    type: OS::Nova::Server
+    properties:
+      image: { get_param: slave_image }
+      flavor: { get_param: slave_flavor }
+      name: { list_join: ["", [{ get_param: slave_name },"$slavenumber$"]] }
+      key_name: { get_resource: sshpublickey }
+      networks:
+        - port: { get_resource: hadoop_slave_port_$slavenumber$ }
+      user_data_format: RAW
+
+############### end slave $slavenumber$ ##############
+

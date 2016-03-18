@@ -1,0 +1,14 @@
+# the source_volid is based on the example at http://docs.openstack.org/developer/heat/template_guide/basic_resources.html
+  software_volume:
+    type: OS::Cinder::Volume
+    properties:
+      name: software_volume
+      source_volid: $image_id$
+
+# mountpoint is not reliable as it's Linux' decision where to provide the volume
+  volume_attachment:
+    type: OS::Cinder::VolumeAttachment
+    properties:
+      volume_id: { get_resource: software_volume }
+      instance_uuid: { get_resource: hadoop_master }
+      mountpoint: /dev/vdb

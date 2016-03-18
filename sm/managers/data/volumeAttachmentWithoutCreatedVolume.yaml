@@ -1,0 +1,7 @@
+# mountpoint is not reliable as it's Linux' decision where to provide the volume
+  volume_attachment:
+    type: OS::Cinder::VolumeAttachment
+    properties:
+      volume_id: $image_id$
+      instance_uuid: { get_resource: hadoop_master }
+      mountpoint: /dev/vdb
