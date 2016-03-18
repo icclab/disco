@@ -59,14 +59,14 @@ parameters:
 resources:
 $users_ssh_public_key$  sshpublickey:
     properties:
-      name: ssh_cluster_pub_key
+      name: $ssh_cluster_pub_key$
       public_key: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDkbCR95uSaiAmspMoSPTKGSk3+5Vd6paKmdZQmdbHJd0a9HKLN87mYgc8qOURvxkjCEKMNYws2d2IQO0e7WELSfmMuQn/tUrLAiFTBfGsNxbarRO+UMvDvQwqQgRZ94wrjF/ELz4rQTe87MTuxpR79rbiGxHrHmJFxGAgS2evczwfmCKyyS15brWsNXaxDLyiBN3mWWz/O+4b3IEN/FKHYQcgy+SytGfHQBFkuOI5ETrRgeBy4ohGZzrn44TYjK4L2tLJJPT0rUffl81huVWoqcgwmkHETszDZm7OYkeLvX9g02JzeiKrqAFEvaWxjyreDkLEqKNF9oxi3SfdX72Yr mesz@CLT-MOB-T-6253-2
     type: OS::Nova::KeyPair
 
   hadoop_sec_group:
     type: OS::Neutron::SecurityGroup
     properties:
-      name: hadoop_security_group
+      name: $hadoop_security_group$
       rules: [
       {"direction":"ingress","protocol":"tcp","port_range_min":"22","port_range_max":"22"},
       {"direction":"ingress","protocol":"tcp","port_range_min":"8025","port_range_max":"8088"},
@@ -78,7 +78,7 @@ $users_ssh_public_key$  sshpublickey:
   hadoop_network:
     type: OS::Neutron::Net
     properties:
-      name: hadoopNet
+      name: $network_name$
 
   hadoop_subnet:
     type: OS::Neutron::Subnet
@@ -123,7 +123,7 @@ $floating_ip_resource$
     type: OS::Neutron::Router
     properties:
       external_gateway_info:
-        network: external-net
+        network: $external_network$
 
 # the disposal problem could be solved with a depends_on: here - see bug https://bugs.launchpad.net/heat/+bug/1299259 ; see also https://review.openstack.org/#/c/115336/ or https://bugs.launchpad.net/murano/+bug/1356721
 # https://translate.google.com/translate?sl=auto&tl=en&js=y&prev=_t&hl=en&ie=UTF-8&u=http%3A%2F%2Fhabrahabr.ru%2Fcompany%2Fselectel%2Fblog%2F247307%2F&edit-text=&act=url
@@ -132,8 +132,6 @@ $floating_ip_resource$
     properties:
       router_id: { get_resource: hadoop_router }
       subnet_id: { get_resource: hadoop_subnet }
-
-$volume_attachment$
 
 $floating_ip_assoc$
 outputs:
