@@ -18,6 +18,7 @@ from sm.managers.generic import Task
 import uuid
 from sm.log import LOG
 from sm.config import CONFIG
+from keystoneclient.v2_0 import client as keystoneclient
 from heatclient import client
 from sm.retry_http import http_retriable_request
 import time
@@ -154,12 +155,16 @@ class Deploy(Task):
                 raise Exception('No design_uri parameter supplied in sm.cfg')
 
             # get the connection handle to keytone
-            tenant = environ.get('HTTP_X_TENANT_NAME', '')
+            auth_url = environ.get('OS_AUTH_URL','')
+            tenant = environ.get('OS_TENANT_NAME', '')
             username = environ.get('OS_USERNAME', '')
             password = environ.get('OS_PASSWORD', '')
             region = environ.get('OS_REGION_NAME','')
 
-            design_uri = util.get_deployer(token, dtype='orchestration',tenant_name=tenant,region=region)
+#            design_uri = util.get_deployer(token, dtype='orchestration',tenant_name=tenant,region=region)
+
+            ksc = ksc=keystoneclient.Client(auth_url=auth_url,username=username,tenant_name=tenant,password=password,region=region)
+            design_uri = ksc.service_catalog.url_for(endpoint_type='public',service_type='orchestration')
 
             if token!='' and token!=None:
                 heatClient = client.Client(HEAT_VERSION, design_uri, token=token)
