@@ -26,6 +26,7 @@ import socket
 import requests
 import json
 from os import environ
+import copy
 import os
 # from sm.managers.wsgi.so import SOE
 import ConfigParser
@@ -35,18 +36,40 @@ __author__ = 'balazs'
 
 HEAT_VERSION = '1'
 
-# This Service Manager was created in order to bypass an OpenShift installation
-# and deploy the Service Orchestrator on an OpenStack VM. For this, a small
-# instance has to be created on OpenStack which will only execute the SO. This
-# SO itself will orchestrate the distributed computing cluster and take the
-# requests for deployment, provisioning, updating and disposal.
-
 # some global variables have to be saved so that different class instances can
 # access them
-soStackId = {}
-stackName = {}
-stateNumber = {}
-stateDescription = {}
+so_instances = {}
+
+class SOInstanceManager():
+    @staticmethod
+    def addSO(newSO, key):
+        global so_instances
+        so_instances[key] = copy.deepcopy(newSO)
+
+    @staticmethod
+    def getSO(key):
+        global so_instances
+        if key in so_instances:
+            return so_instances[key]
+        else:
+            return None
+
+class SOContainer():
+    def __init__(self, *args): #ip, frameworks, template, stackname):
+        # if isinstance(wargs, dict):
+        self.data = copy.deepcopy(args)
+        print(args)
+
+    def getData(self):
+        return self.data
+
+    def addEntry(self, *args):
+        if 'value' in args and 'key' in args:
+            self.data[args['key']] = copy.deepcopy(args['value'])
+
+    def getEntry(self, key):
+        if 'key' in self.data:
+            return self.data[key]
 
 class Init(Task):
 
@@ -80,7 +103,6 @@ class Init(Task):
         LOG.debug(json.dumps(infoDict))
         return self.entity, self.extras
 
-
 class Activate(Task):
     def __init__(self, entity, extras):
         Task.__init__(self, entity, extras, state='activate')
@@ -109,7 +131,6 @@ class Activate(Task):
         LOG.debug(json.dumps(infoDict))
         return self.entity, self.extras
 
-
 class Deploy(Task):
     """
     The Deploy class is about deploying the SO on the system where it has to
@@ -124,10 +145,7 @@ class Deploy(Task):
 
     def run(self):
         # TODO: bad practise
-        global stateNumber
-        global stateDescription
-        global soStackId
-        global stackName
+        global so_instances
 
         LOG.debug("running deploy")
         self.start_time = time.time()
@@ -140,30 +158,20 @@ class Deploy(Task):
         LOG.debug(json.dumps(infoDict))
         self.entity.attributes['mcn.service.state'] = 'deploy'
 
-        # mySOE = SOE( token=self.extras['token'], tenant=self.extras['tenant_name'] )
-
         heatTemplate = self.__get_heat_template(attributes=self.entity.attributes)
 
         if heatTemplate != "":
             # deyloy the Heat orchestration template on OpenStack:
             token = self.extras['token']
 
-            # design_uri contains the keystone endpoint
-            design_uri = CONFIG.get('openstackso', 'heat_endpoint', '')
-            if design_uri == '':
-                LOG.fatal('No design_uri parameter supplied in sm.cfg')
-                raise Exception('No design_uri parameter supplied in sm.cfg')
-
-            # get the connection handle to keytone
+            # get the connection handle to keystone
             auth_url = environ.get('OS_AUTH_URL','')
             tenant = environ.get('OS_TENANT_NAME', '')
             username = environ.get('OS_USERNAME', '')
             password = environ.get('OS_PASSWORD', '')
             region = environ.get('OS_REGION_NAME','')
 
-#            design_uri = util.get_deployer(token, dtype='orchestration',tenant_name=tenant,region=region)
-
-            ksc = ksc=keystoneclient.Client(auth_url=auth_url,username=username,tenant_name=tenant,password=password,region=region)
+            ksc=keystoneclient.Client(auth_url=auth_url,username=username,tenant_name=tenant,password=password,region=region)
             design_uri = ksc.service_catalog.url_for(endpoint_type='public',service_type='orchestration')
 
             if token!='' and token!=None:
@@ -173,7 +181,7 @@ class Deploy(Task):
 
             randomstring = str(uuid.uuid1())
 
-            curStackName = 'so_'+randomstring
+            curStackName = 'disco_'+randomstring
             body = {
                 'stack_name': curStackName,
                 'template': heatTemplate
@@ -183,80 +191,10 @@ class Deploy(Task):
             # here is where the actual SO deployment happens
             tmp = heatClient.stacks.create(**body)
 
-            soStackId[self.sofloatingip] = tmp['stack']['id']
-            stackName[self.sofloatingip] = curStackName
+            SOInstanceManager.addSO(SOContainer(tmp),self.entity.identifier)
             LOG.debug("new stack's ID: "+tmp['stack']['id'])
-            # at this point, OpenStack has control over the SO and we can only wait
 
-
-
-
-        # status update
-        # self.__status(1,"started deployment of VM on OpenStack for SO")
-
-        # Do deploy work here
-        # self.__deploy_so_vm()
-
-        # status update
-        # self.__status(2,"SO's VM deployment initiated; waiting to finish & start SO")
-
-        # after the deployment, we have to wait until the VM is setup and the
-        # SO is listening for connections
-        # TODO: this is going to result in a problem if the SO couldn't be deployed successfully! there should be a timeout with the iteration and a treatment of each outcome
-#        iteration = 0
-#        while not self.__so_complete():
-#            iteration += 1
-#            # wait some seconds with each iteration - 5 was chosen just
-#            # randomly in order to not make the communication too frequent but
-#            # still get the result quite fast. It also depends on the OpenStack
-#            # installation where the SO is to be deployed. (If the
-#deployment
-#            # speed is low, there is no need to test it too frequently and vice
-#            # versa)
-#            time.sleep(5)
-
-        # the second count might not be very accurate, but it gives an estimate
-        # LOG.debug("it took me "+str(time.time() - self.start_time)+" seconds to deploy the SO")
-
-        # status update
-        # self.__status(3,"SO running; sending deploy command to it")
-        #
-        # # send the deploy command to the freshly instantiated SO
-        # self.__deploy_to_so()
-        #
-        # elapsed_time = time.time() - self.start_time
-        #
-        # infoDict = {
-        #             'sm_name': self.entity.kind.term,
-        #             'phase': 'deploy',
-        #             'phase_event': 'done',
-        #             'response_time': elapsed_time,
-        #             }
-        # LOG.debug(json.dumps(infoDict))
         return self.entity, self.extras
-
-    def __status(self, nr, desc):
-        '''
-        :param nr: number of current state
-        :param desc: description of current state
-        :return: none
-        '''
-        global stateNumber
-        global stateDescription
-        stateNumber[self.sofloatingip] = nr
-        stateDescription[self.sofloatingip] = desc
-
-    def __so_complete(self):
-        """
-        __so_complete tries to open a connection with the SO on the deployed
-        OpenStack VM
-        :return: True if connection has been established, else False
-        """
-        # TODO: check if it's really non-blocking and "restrained"
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        result = sock.connect_ex((self.sofloatingip,8080))
-        sock.close()
-        return result==0
 
     def __get_heat_template(self, attributes):
         randomstring = str(uuid.uuid1())
@@ -528,7 +466,6 @@ class Provision(Task):
         LOG.debug(json.dumps(infoDict))
         return self.entity, self.extras
 
-
 class Retrieve(Task):
 
     def __init__(self, entity, extras):
@@ -546,12 +483,6 @@ class Retrieve(Task):
         LOG.debug(json.dumps(infoDict))
         self.entity.attributes['mcn.service.state'] = 'retrieve'
 
-        self.floatingip = self.entity.attributes['icclab.haas.master.attachfloatingipwithid']
-
-        # Do retrieve work here
-        self.entity.attributes['so_state_nr'] = str(stateNumber[self.sofloatingip])
-        self.entity.attributes['so_state_desc'] = stateDescription[self.sofloatingip]
-
         elapsed_time = time.time() - self.start_time
         infoDict = {
                     'sm_name': self.entity.kind.term,
@@ -561,7 +492,6 @@ class Retrieve(Task):
                     }
         LOG.debug(json.dumps(infoDict))
         return self.entity, self.extras
-
 
 # can only be executed when provisioning is complete
 class Update(Task):
@@ -597,6 +527,8 @@ class Update(Task):
 class Destroy(Task):
     def __init__(self, entity, extras):
         Task.__init__(self, entity, extras, state='destroy')
+        self.entity = entity
+        self.extras = extras
 
     def run(self):
         LOG.debug("running destroy")
@@ -612,51 +544,35 @@ class Destroy(Task):
 
         # Do destroy work here
 
-        # first, the SO has to be notified that it should destroy the computing
-        # cluster...
+        # get the connection handle to keystone
+        auth_url = environ.get('OS_AUTH_URL','')
+        tenant = environ.get('OS_TENANT_NAME', '')
+        username = environ.get('OS_USERNAME', '')
+        password = environ.get('OS_PASSWORD', '')
+        region = environ.get('OS_REGION_NAME','')
+
+        ksc=keystoneclient.Client(auth_url=auth_url,username=username,tenant_name=tenant,password=password,region=region)
+        design_uri = ksc.service_catalog.url_for(endpoint_type='public',service_type='orchestration')
+
         token = self.extras['token']
-        heads = {
-            'X-Auth-Token':token,
-            'X-Tenant-Name':CONFIG.get('openstackso','tenantname'),
-             'Content-Type':'text/occi',
-             'Accept':'text/occi'
+
+        if token!='' and token!=None:
+            heatClient = client.Client(HEAT_VERSION, design_uri, token=token)
+        else:
+            heatClient = client.Client(HEAT_VERSION, design_uri, username=username, tenant_name=tenant, password=password)
+
+        soid = self.entity.identifier
+
+        tempSO = SOInstanceManager.getSO(soid)
+
+        data = tempSO.data[0]
+        stack = data['stack']
+
+        body = {
+            'stack_id': tempSO.data[0]['stack']['id']
         }
 
-        # this happens with the delete command
-        self.sofloatingip = self.entity.attributes['sofloatingip']
-        http_retriable_request('DELETE', "http://"+self.sofloatingip+':8080/orchestrator/default', headers=heads)
-
-        # this time, we don't have to wait anymore until the SO's VM is
-        # destroyed because it's OpenStack's duty to worry about that...so
-        # let's destroy the SO's VM straight away
-        global soStackId
-
-        # design_uri contains the keystone endpoint
-        design_uri = CONFIG.get('openstackso', 'heat_endpoint', '')
-        if design_uri == '':
-            LOG.fatal('No design_uri parameter supplied in sm.cfg')
-            raise Exception('No design_uri parameter supplied in sm.cfg')
-
-        # get the connection handle to keytone
-        heatClient = client.Client(HEAT_VERSION, design_uri, token=token)
-
-        # get the floating IP of the SO's VM
-        try:
-            self.sofloatingip = self.entity.attributes['icclab.haas.master.attachfloatingipwithid']
-        except:
-            raise Exception("argument sofloatingip not given")
-
-        try:
-            from novaclient import client as novaclient
-
-            # the following doesn't work, but maybe with nova.servers.remove_floating_ip(server,ip)
-            # heatClient.v2.floating_ips.delete(self.sofloatingip)
-            heatClient.stacks.delete(soStackId[self.sofloatingip])
-        except:
-            LOG.debug("either openstack_so_manager::heatClient or openstack_so_manager::soStackId wasn't defined")
-
-        # at this point, the computing cluster as well as the SO's VM have been
-        # deleted on OpenStack
+        heatClient.stacks.delete(**body)
 
         elapsed_time = time.time() - self.start_time
         infoDict = {
