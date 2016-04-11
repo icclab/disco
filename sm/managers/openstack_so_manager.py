@@ -19,18 +19,13 @@ import uuid
 from sm.log import LOG
 from sm.config import CONFIG
 from keystoneclient.v2_0 import client as keystoneclient
-from heatclient import client
-from sm.retry_http import http_retriable_request
+from heatclient import client as heatclient
 import time
-import socket
-import requests
 import json
 from os import environ
 import copy
 import os
-# from sm.managers.wsgi.so import SOE
 import ConfigParser
-from sdk.mcn import util
 
 __author__ = 'balazs'
 
@@ -53,6 +48,52 @@ class SOInstanceManager():
             return so_instances[key]
         else:
             return None
+
+    @staticmethod
+    def deleteSO(key):
+        global so_instances
+        if key in so_instances:
+            del so_instances[key]
+
+# ClientProvider returns the appropriate client after fetching the needed service catalog
+class ClientProvider():
+    @staticmethod
+    def getOrchestrator( attributes ):
+
+        # getParam will return the parameter given
+        # several layer are queried for the parameters in this order:
+        #   - given over curl request
+        #   - given as environment variables
+        #   - given within the service_manager section of the sm.cfg file
+        def getParam( paramName ):
+            if paramName in attributes:
+                return attributes[paramName]
+            elif environ.get(paramName) is not None:
+                return environ.get(paramName)
+            elif CONFIG.get('service_manager',paramName,'') is not None:
+                return CONFIG.get('service_manager',paramName,'')
+            else:
+                LOG.debug(paramName+"not given")
+                raise
+
+        # first, a connection to keystone has to be established in order to load the service catalog for the orchestration endpoint (heat)
+        # the design_uri has to be given in the sm.cfg file so that no other OpenStack deployment can be used
+        kc = keystoneclient.Client(auth_url=CONFIG.get('service_manager','design_uri',''),
+                                   username=getParam('OS_USERNAME'),
+                                   password=getParam('OS_PASSWORD'),
+                                   tenant_name=getParam('OS_TENANT_NAME')
+                                   )
+
+        # get the orchestration part of the service catalog
+        orch = kc.service_catalog.get_endpoints(service_type='orchestration',
+                                                region_name=getParam('OS_REGION_NAME'),
+                                                endpoint_type='publicURL'
+                                                )
+
+        # create a heat client with acquired public endpoint
+        # if the correct region had been given, there is supposed to be but one entry for the orchestrator URLs
+        hc = heatclient.Client(HEAT_VERSION, endpoint=orch['orchestration'][0]['publicURL'],token=kc.auth_token)
+        return hc
 
 class SOContainer():
     def __init__(self, *args): #ip, frameworks, template, stackname):
@@ -158,29 +199,18 @@ class Deploy(Task):
         LOG.debug(json.dumps(infoDict))
         self.entity.attributes['mcn.service.state'] = 'deploy'
 
+        # retrieve the Heat template which will setup the cluster according to the specifications within the given http attributes
         heatTemplate = self.__get_heat_template(attributes=self.entity.attributes)
 
+        # If heatTemplate is empty, nothing should be deployed. This can happen if the according debug setting is set to not deploying.
         if heatTemplate != "":
-            # deyloy the Heat orchestration template on OpenStack:
-            token = self.extras['token']
 
-            # get the connection handle to keystone
-            auth_url = environ.get('OS_AUTH_URL','')
-            tenant = environ.get('OS_TENANT_NAME', '')
-            username = environ.get('OS_USERNAME', '')
-            password = environ.get('OS_PASSWORD', '')
-            region = environ.get('OS_REGION_NAME','')
-
-            ksc=keystoneclient.Client(auth_url=auth_url,username=username,tenant_name=tenant,password=password,region=region)
-            design_uri = ksc.service_catalog.url_for(endpoint_type='public',service_type='orchestration')
-
-            if token!='' and token!=None:
-                heatClient = client.Client(HEAT_VERSION, design_uri, token=token)
-            else:
-                heatClient = client.Client(HEAT_VERSION, design_uri, username=username, tenant_name=tenant, password=password)
+            # deploy the Heat orchestration template on OpenStack:
+            heatClient=ClientProvider.getOrchestrator(self.entity.attributes)
 
             randomstring = str(uuid.uuid1())
 
+            # set the required attributes (stack name and Heat template) to what is needed
             curStackName = 'disco_'+randomstring
             body = {
                 'stack_name': curStackName,
@@ -191,15 +221,14 @@ class Deploy(Task):
             # here is where the actual SO deployment happens
             tmp = heatClient.stacks.create(**body)
 
+            # the return value will be saved locally so it can be retrieved for future operations
             SOInstanceManager.addSO(SOContainer(tmp),self.entity.identifier)
             LOG.debug("new stack's ID: "+tmp['stack']['id'])
 
         return self.entity, self.extras
 
     def __get_heat_template(self, attributes):
-        randomstring = str(uuid.uuid1())
-
-
+        randomstring = "-"+str(uuid.uuid1())
 
         # this function will return the first of following values in the order
         # of occurrence:
@@ -211,7 +240,8 @@ class Deploy(Task):
                 return attributes[attrName]
             else:
                 try:
-                    return config.get('cluster',attrName)
+                    retVal = config.get('cluster',attrName)
+                    return retVal
                 except:
                     return ""
 
@@ -232,11 +262,6 @@ class Deploy(Task):
         # on the following lines; the function getAttr() is returning the
         # appropriate value. As an empty value cannot be used for int/float
         # conversion, they have to be set within a try-except block.
-        # masterCount = 1
-        # try:
-        #     masterCount = int(getAttr('icclab.haas.master.number'))
-        # except:
-        #     pass
         slaveCount = 1
         try:
             slaveCount = int(getAttr('icclab.haas.slave.number'))
@@ -251,7 +276,7 @@ class Deploy(Task):
         SSHMasterPublicKey = getAttr('icclab.haas.master.publickey')
         withFloatingIP = getAttr('icclab.haas.master.withfloatingip').lower() in ['true','1']
         master_name = getAttr('icclab.haas.master.name')+randomstring
-        slave_name = getAttr('icclab.haas.slave.name')+randomstring
+        slave_name = getAttr('icclab.haas.slave.name')+randomstring+"-"
         subnet_cidr = getAttr('icclab.haas.network.subnet.cidr')
         subnet_gw_ip = getAttr('icclab.haas.network.gw.ip')
         subnet_allocation_pool_start = getAttr('icclab.haas.network.subnet.allocpool.start')
@@ -267,7 +292,7 @@ class Deploy(Task):
 
         diskId = 'virtio-'+image_id[0:20]
 
-        masterSSHKeyEntry = ''
+        # masterSSHKeyEntry = ''
 
         def getFileContent(fileName):
             f = open(os.path.join(self.rootFolder, fileName))
@@ -467,6 +492,7 @@ class Provision(Task):
         return self.entity, self.extras
 
 class Retrieve(Task):
+# the retrieve task will return the external IP of the created master VM as header value externalIP
 
     def __init__(self, entity, extras):
         Task.__init__(self, entity, extras, 'retrieve')
@@ -482,6 +508,30 @@ class Retrieve(Task):
                     }
         LOG.debug(json.dumps(infoDict))
         self.entity.attributes['mcn.service.state'] = 'retrieve'
+
+        # the stack's identifier needs to be read from the locally saved data
+        soid = self.entity.identifier
+        tempSO = SOInstanceManager.getSO(soid)
+        stackID = tempSO.data[0]['stack']['id']
+
+        # a heat client needs to be acquired which will provide the connection to OpenStack
+        heatClient = ClientProvider.getOrchestrator(self.entity.attributes)
+
+        # the current stack contains the data about the output values
+        curstack = heatClient.stacks.get(stackID)
+
+        # if no external IP has been assigned (because a possible error happened)
+        externalIP = "none"
+
+        # later, all outputs will be iterated and the external_ip one chosen for status value
+        for element in curstack.outputs:
+            if element['output_key']=='external_ip' and element['output_value'] is not None:
+                LOG.debug("external IP: "+element['output_value'])
+                externalIP = element['output_value']
+                break
+
+        # the value will be saved among the attributes which will be returned to the user
+        self.entity.attributes['externalIP'] = copy.deepcopy(externalIP)
 
         elapsed_time = time.time() - self.start_time
         infoDict = {
@@ -544,35 +594,18 @@ class Destroy(Task):
 
         # Do destroy work here
 
-        # get the connection handle to keystone
-        auth_url = environ.get('OS_AUTH_URL','')
-        tenant = environ.get('OS_TENANT_NAME', '')
-        username = environ.get('OS_USERNAME', '')
-        password = environ.get('OS_PASSWORD', '')
-        region = environ.get('OS_REGION_NAME','')
-
-        ksc=keystoneclient.Client(auth_url=auth_url,username=username,tenant_name=tenant,password=password,region=region)
-        design_uri = ksc.service_catalog.url_for(endpoint_type='public',service_type='orchestration')
-
-        token = self.extras['token']
-
-        if token!='' and token!=None:
-            heatClient = client.Client(HEAT_VERSION, design_uri, token=token)
-        else:
-            heatClient = client.Client(HEAT_VERSION, design_uri, username=username, tenant_name=tenant, password=password)
-
+        # the stack's ID has to be fetched in order for the stack to be deleted by the heatClient's request
+        heatClient = ClientProvider.getOrchestrator(self.entity.attributes)
         soid = self.entity.identifier
-
         tempSO = SOInstanceManager.getSO(soid)
-
-        data = tempSO.data[0]
-        stack = data['stack']
-
         body = {
             'stack_id': tempSO.data[0]['stack']['id']
         }
 
         heatClient.stacks.delete(**body)
+
+        # the SO can be deleted again as the stack has been deleted too by this moment
+        SOInstanceManager.deleteSO(soid)
 
         elapsed_time = time.time() - self.start_time
         infoDict = {
