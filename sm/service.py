@@ -14,6 +14,7 @@
 #    under the License.
 
 
+import re
 import json
 import os
 import requests
@@ -43,8 +44,6 @@ from pymongo import MongoClient
 from bson.objectid import ObjectId
 from sm.mongo_key_replacer import KeyTransform
 from ConfigParser import NoSectionError
-
-# from wsgiproxy.app import WSGIProxyApplication
 
 __author__ = 'andy'
 
@@ -176,7 +175,63 @@ class MApplication(Application):
         return super(MApplication, self).register_backend(category, backend)
 
     def __call__(self, environ, response):
+        def getAttr( haystack, attr ):
+            """
+            :param haystack: string with all arguments
+            :param attr: argument name to be returned
+            :return: argument value or None if not found
+            """
+            # TODO: this whole method is negligent!!! the split() functions are VERY, VERY dangerous!!! still, the code os so messed up that I didn't find the OCCI functions for parsing the attributes anywhere
+            splits = haystack.split(',')
+            # regex could be done nicer - like parsing only the value found in
+            # the beginning
+            p = re.compile("^['\"](.*)['\"]$")
+            for element in splits:
+                elemsplit = element.split("=")
+                try:
+                    elemsplit[0].index(attr)
+                    if p.match(elemsplit[1]):
+                        return elemsplit[1][1:len(elemsplit[1])-1]
+                    else:
+                        return elemsplit[1]
+                except:
+                    pass
+            return None
+
         token = environ.get('HTTP_X_AUTH_TOKEN', '')
+
+        # design_uri is needed for the case that no token was given
+        design_uri = CONFIG.get('service_manager', 'design_uri', '')
+        if design_uri == '':
+                LOG.fatal('No design_uri parameter supplied in sm.cfg')
+                raise Exception('No design_uri parameter supplied in sm.cfg')
+
+        # get the token from username, tenant and region combination from HTTP
+        # headers
+        if token is '':
+            try:
+                # get all the required variables - as the tenant name has a
+                # special role, it's queried separately
+                occi_attributes = environ.get('HTTP_X_OCCI_ATTRIBUTE','')
+                username = getAttr(occi_attributes,'OS_USERNAME')
+                password = getAttr(occi_attributes,'OS_PASSWORD')
+                if environ.get('HTTP_X_TENANT_NAME', '') is not '':
+                    tenantname = environ.get('HTTP_X_TENANT_NAME', '')
+                else:
+                    tenantname = getAttr(occi_attributes,'OS_TENANT_NAME')
+
+                kc = client.Client(auth_url=design_uri,
+                                   username=username,
+                                   password=password,
+                                   tenant_name=tenantname
+                                   )
+                environ['HTTP_X_AUTH_TOKEN'] = kc.auth_token
+                token = kc.auth_token
+                environ['HTTP_X_TENANT_NAME'] = tenantname
+            except:
+                raise Exception('Either no DESIGN_URI, OS_USERNAME, '
+                                'OS_PASSWORD, OS_TENANT_NAME respectively '
+                                'provided or the login didn\'t succeed')
 
         if token == '':
             LOG.error('No X-Auth-Token header supplied.')
@@ -186,12 +241,6 @@ class MApplication(Application):
         username = environ.get('HTTP_X_USERNAME', '')
         password = environ.get('HTTP_X_PASSWORD', '')
 
-        design_uri = CONFIG.get('service_manager', 'design_uri', '')
-        if design_uri == '':
-                LOG.fatal('No design_uri parameter supplied in sm.cfg')
-                raise Exception('No design_uri parameter supplied in sm.cfg')
-
-        LOG.debug("design uri: "+design_uri+", password: "+password+", username: "+username)
 
         auth = KeyStoneAuthService(design_uri)
 #        auth.verify()
