@@ -22,7 +22,6 @@ from keystoneclient.v2_0 import client as keystoneclient
 from heatclient import client as heatclient
 import time
 import json
-from os import environ
 import copy
 import os
 import ConfigParser
@@ -68,8 +67,8 @@ class ClientProvider():
         def getParam( paramName ):
             if paramName in attributes:
                 return attributes[paramName]
-            elif environ.get(paramName) is not None:
-                return environ.get(paramName)
+            elif os.environ.get(paramName) is not None:
+                return os.environ.get(paramName)
             elif CONFIG.get('service_manager',paramName,'') is not None:
                 return CONFIG.get('service_manager',paramName,'')
             else:
