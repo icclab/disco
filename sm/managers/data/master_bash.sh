@@ -152,6 +152,9 @@ su ubuntu -c "/usr/lib/hadoop/hadoop/sbin/start-dfs.sh"
 su ubuntu -c "/usr/lib/hadoop/hadoop/sbin/start-yarn.sh"
 echo "hadoop cluster ready" >> /home/ubuntu/deployment.log
 duration=$SECONDS
+# save it into deployment.log...
+echo "deployment took me $duration seconds" >> /home/ubuntu/deployment.log
+# ...and into debug.log
 echo "deployment took me $duration seconds"
 
 # in the following line, the whole regular output will be redirected to the
