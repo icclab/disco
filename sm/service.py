@@ -175,29 +175,6 @@ class MApplication(Application):
         return super(MApplication, self).register_backend(category, backend)
 
     def __call__(self, environ, response):
-        def getAttr( haystack, attr ):
-            """
-            :param haystack: string with all arguments
-            :param attr: argument name to be returned
-            :return: argument value or None if not found
-            """
-            # TODO: this whole method is negligent!!! the split() functions are VERY, VERY dangerous!!! still, the code os so messed up that I didn't find the OCCI functions for parsing the attributes anywhere
-            splits = haystack.split(',')
-            # regex could be done nicer - like parsing only the value found in
-            # the beginning
-            p = re.compile("^['\"](.*)['\"]$")
-            for element in splits:
-                elemsplit = element.split("=")
-                try:
-                    elemsplit[0].index(attr)
-                    if p.match(elemsplit[1]):
-                        return elemsplit[1][1:len(elemsplit[1])-1]
-                    else:
-                        return elemsplit[1]
-                except:
-                    pass
-            return None
-
         token = environ.get('HTTP_X_AUTH_TOKEN', '')
 
         # design_uri is needed for the case that no token was given
@@ -205,6 +182,13 @@ class MApplication(Application):
         if design_uri == '':
                 LOG.fatal('No design_uri parameter supplied in sm.cfg')
                 raise Exception('No design_uri parameter supplied in sm.cfg')
+        tenantname = environ.get('HTTP_X_TENANT_NAME', '')
+        region = environ.get('HTTP_X_REGION_NAME','')
+        username = environ.get('HTTP_X_USER_NAME','')
+        password = environ.get('HTTP_X_PASSWORD','')
+
+        # for checking the authenticity
+        auth = KeyStoneAuthService(design_uri)
 
         # get the token from username, tenant and region combination from HTTP
         # headers
@@ -212,13 +196,6 @@ class MApplication(Application):
             try:
                 # get all the required variables - as the tenant name has a
                 # special role, it's queried separately
-                occi_attributes = environ.get('HTTP_X_OCCI_ATTRIBUTE','')
-                username = getAttr(occi_attributes,'OS_USERNAME')
-                password = getAttr(occi_attributes,'OS_PASSWORD')
-                if environ.get('HTTP_X_TENANT_NAME', '') is not '':
-                    tenantname = environ.get('HTTP_X_TENANT_NAME', '')
-                else:
-                    tenantname = getAttr(occi_attributes,'OS_TENANT_NAME')
 
                 kc = client.Client(auth_url=design_uri,
                                    username=username,
@@ -227,48 +204,17 @@ class MApplication(Application):
                                    )
                 environ['HTTP_X_AUTH_TOKEN'] = kc.auth_token
                 token = kc.auth_token
-                environ['HTTP_X_TENANT_NAME'] = tenantname
             except:
-                raise Exception('Either no DESIGN_URI, OS_USERNAME, '
-                                'OS_PASSWORD, OS_TENANT_NAME respectively '
+                raise Exception('Either no design uri, username, '
+                                'password, or tenant name respectively '
                                 'provided or the login didn\'t succeed')
-
-        if token == '':
-            LOG.error('No X-Auth-Token header supplied.')
-            raise HTTPError(400, 'No X-Auth-Token header supplied.')
-
-        tenant = environ.get('HTTP_X_TENANT_NAME', '')
-        username = environ.get('HTTP_X_USERNAME', '')
-        password = environ.get('HTTP_X_PASSWORD', '')
-
-
-        auth = KeyStoneAuthService(design_uri)
-#        auth.verify()
-
-        # at the first position, tenant must not be checked as tenant is needed for the following case as well
-        # first if statement checks username / password authentication
-        if username != '' or password != '':
-            if tenant != '' and username != '' and password != '':
-                if not auth.verify( tenant_name=tenant, username=username, password=password ):
-                    LOG.error('Tenant name / username / password combination not accepted.')
-                    raise HTTPError(401, 'Tenant name / username / password combination not accepted.')
-            else:
-                LOG.error('Tenant name, username or password not given.')
-                raise HTTPError(400, 'HTTP_X_TENANT_NAME, HTTP_X_USERNAME or HTTP_X_PASSWORD not supplied.')
-        # if token authentification was chosen, it has to be validated here
-        elif token != '':
-            if tenant != '':
-                if not auth.verify(token=token, tenant_name=tenant):
-                    LOG.error('Token has probably expired')
-                    raise HTTPError(401, 'Token is not valid. You likely need an updated token.')
-            else:
-                LOG.error('No X-Tenant-Name header supplied.')
-                raise HTTPError(400, 'No X-Tenant-Name header supplied.')
         else:
-            LOG.error('Neither {HTTP_X_TENANT_NAME,HTTP_X_USERNAME,HTTP_X_PASSWORD} nor {HTTP_X_TENANT_NAME,HTTP_X_AUTH_TOKEN} combination for authentication supplied.')
-            raise HTTPError(400, '{HTTP_X_TENANT_NAME,HTTP_X_USERNAME,HTTP_X_PASSWORD}')
+            if not auth.verify(token=token, tenant_name=tenantname):
+                LOG.error('Token has probably expired')
+                raise HTTPError(401, 'Token is not valid. You likely need an updated token.')
 
-        return self._call_occi(environ, response, token=token, tenant_name=tenant, registry=self.registry)
+        # the arguments at the back will become the extras variable within the individual SM classes
+        return self._call_occi(environ, response, username=username, design_uri=design_uri, password=password, token=token, tenant_name=tenantname, registry=self.registry, region=region)
 
 
 class Service:

@@ -57,35 +57,19 @@ class SOInstanceManager():
 # ClientProvider returns the appropriate client after fetching the needed service catalog
 class ClientProvider():
     @staticmethod
-    def getOrchestrator( attributes ):
-
-        # getParam will return the parameter given
-        # several layer are queried for the parameters in this order:
-        #   - given over curl request
-        #   - given as environment variables
-        #   - given within the service_manager section of the sm.cfg file
-        def getParam( paramName ):
-            if paramName in attributes:
-                return attributes[paramName]
-            elif os.environ.get(paramName) is not None:
-                return os.environ.get(paramName)
-            elif CONFIG.get('service_manager',paramName,'') is not None:
-                return CONFIG.get('service_manager',paramName,'')
-            else:
-                LOG.debug(paramName+"not given")
-                raise
+    def getOrchestrator( extras ):
 
         # first, a connection to keystone has to be established in order to load the service catalog for the orchestration endpoint (heat)
         # the design_uri has to be given in the sm.cfg file so that no other OpenStack deployment can be used
         kc = keystoneclient.Client(auth_url=CONFIG.get('service_manager','design_uri',''),
-                                   username=getParam('OS_USERNAME'),
-                                   password=getParam('OS_PASSWORD'),
-                                   tenant_name=getParam('OS_TENANT_NAME')
+                                   username=extras['username'],
+                                   password=extras['password'],
+                                   tenant_name=extras['tenant_name']
                                    )
 
         # get the orchestration part of the service catalog
         orch = kc.service_catalog.get_endpoints(service_type='orchestration',
-                                                region_name=getParam('OS_REGION_NAME'),
+                                                region_name=extras['region'],
                                                 endpoint_type='publicURL'
                                                 )
 
@@ -205,7 +189,7 @@ class Deploy(Task):
         if heatTemplate != "":
 
             # deploy the Heat orchestration template on OpenStack:
-            heatClient=ClientProvider.getOrchestrator(self.entity.attributes)
+            heatClient=ClientProvider.getOrchestrator(self.extras)
 
             randomstring = str(uuid.uuid1())
 
@@ -514,7 +498,7 @@ class Retrieve(Task):
         stackID = tempSO.data[0]['stack']['id']
 
         # a heat client needs to be acquired which will provide the connection to OpenStack
-        heatClient = ClientProvider.getOrchestrator(self.entity.attributes)
+        heatClient = ClientProvider.getOrchestrator(self.extras)
 
         # the current stack contains the data about the output values
         curstack = heatClient.stacks.get(stackID)
@@ -594,7 +578,7 @@ class Destroy(Task):
         # Do destroy work here
 
         # the stack's ID has to be fetched in order for the stack to be deleted by the heatClient's request
-        heatClient = ClientProvider.getOrchestrator(self.entity.attributes)
+        heatClient = ClientProvider.getOrchestrator(self.extras)
         soid = self.entity.identifier
         tempSO = SOInstanceManager.getSO(soid)
         body = {
