@@ -49,7 +49,7 @@ class TestSOMmethods(unittest.TestCase):
                 return self.CC_PWD
             if args[1] == 'nb_api':
                 return self.CC_NB_API
-        if args[0] == 'service_manager_test':
+        if args[0] == 'service_manager':
             if args[1] == 'bundle_location':
                 return self.CC_SM_BL
             if args[1] == 'ssh_key_location':

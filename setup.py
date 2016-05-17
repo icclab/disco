@@ -27,7 +27,7 @@ setup(
     packages=find_packages(exclude=["*.tests", "*.tests.*", "tests.*", "tests", "example", "etc"]),
     install_requires=[
         'pyssf',
-        'requests',
+        'requests>=2.8.1',
         'mako',
         'retrying',
         'tornado',
@@ -39,5 +39,5 @@ setup(
         'jsonpickle',
         'python-keystoneclient',
         'pymongo'],
-    scripts=['bin/service_manager_test']
+    scripts=['bin/service_manager']
 )

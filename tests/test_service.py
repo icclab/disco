@@ -20,7 +20,7 @@ class TestServiceConstruction(unittest.TestCase):
 
     # Side_effect methods for mock.sm.so_manager.CONFIG
     def side_effect_config(self, *args):
-        if args[0] == 'service_manager_test':
+        if args[0] == 'service_manager':
             if args[1] == 'design_uri':
                 return self.DESIGN_URI
         if args[0] == 'service_manager_admin':

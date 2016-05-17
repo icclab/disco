@@ -68,7 +68,7 @@ class ServiceBackend(KindBackend):
     """
     def __init__(self, app):
         self.registry = app.registry
-        # these are read from a location specified in sm,cfg, service_manager_test::service_params
+        # these are read from a location specified in sm,cfg, service_manager::service_params
         self.srv_prms = ServiceParameters()
 
     def create(self, entity, extras):
