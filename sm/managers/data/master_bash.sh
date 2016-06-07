@@ -11,6 +11,20 @@
 
 {
 SECONDS=0
+
+state=0
+
+function setState() {
+    echo $state > /home/ubuntu/status.log
+    let "state += 1"
+}
+
+# state 1
+setState
+
+# serve deployment.log
+sh -c "while true; do nc -l -p 8084 < /home/ubuntu/status.log; done" > /dev/null 2>&1 &
+
 # disable IPv6 as Hadoop won't run on a system with it activated
 echo "disabling IPv6" >> /home/ubuntu/deployment.log
 echo -e "\nnet.ipv6.conf.all.disable_ipv6 = 1\nnet.ipv6.conf.default.disable_ipv6 = 1\nnet.ipv6.conf.lo.disable_ipv6 = 1" >> /etc/sysctl.conf
@@ -81,7 +95,7 @@ EOF
 # originally from Git repo https://github.com/jcmcken/parallel-ssh
 # cp -r /mnt/pssh/pssh /usr/bin/
 apt-get update
-apt-get install -y pssh git
+apt-get install -y pssh # git
 cat - > /home/ubuntu/hosts.lst << 'EOF'
 127.0.0.1
 $for_loop_slaves$
@@ -89,17 +103,34 @@ EOF
 
 mkdir /home/ubuntu/downloaded
 cd /home/ubuntu/downloaded
+
+# state 2
+setState
+
 wget http://mirror.switch.ch/mirror/apache/dist/hadoop/common/hadoop-2.7.1/hadoop-2.7.1.tar.gz
+
+# state 3
+setState
+
 wget --no-cookies --no-check-certificate --header "Cookie: oraclelicense=accept-securebackup-cookie" "http://download.oracle.com/otn-pub/java/jdk/8u74-b02/jdk-8u74-linux-x64.tar.gz" -O jdk-8-linux-x64.tar.gz
 
 function transferFirstUnpackLater {
+    # state 4
+    setState
+
 	# copying hadoop & jdk to slaves in a compact form and unpacking them on
 	# the slaves
 	echo "copying hadoop and jdk to slaves" >> /home/ubuntu/deployment.log
 	su ubuntu -c "parallel-scp -h /home/ubuntu/hosts.lst /home/ubuntu/downloaded/{hadoop-2.7.1.tar.gz,jdk-8-linux-x64.tar.gz} /home/ubuntu"
 	echo "unpacking hadoop" >> /home/ubuntu/deployment.log
+
+    # state 5
+	setState
 	su ubuntu -c "parallel-ssh -t 2000 -h /home/ubuntu/hosts.lst \"tar -xzf /home/ubuntu/hadoop-2.7.1.tar.gz\""
 	echo "unpacking jdk" >> /home/ubuntu/deployment.log
+
+    # state 6
+	setState
 	su ubuntu -c "parallel-ssh -t 2000 -h /home/ubuntu/hosts.lst \"tar -xzf /home/ubuntu/jdk-8-linux-x64.tar.gz\""
 	echo "setting up both" >> /home/ubuntu/deployment.log
 	# done with copying/unpacking hadoop/jdk
@@ -109,6 +140,9 @@ function transferFirstUnpackLater {
 # transferFirstUnpackLater or transferUnpackedFiles
 echo "transferring hadoop & jdk to the masters/slaves and unpacking them" >> /home/ubuntu/deployment.log
 transferFirstUnpackLater
+
+# state 7
+setState
 
 echo "setting up hadoop & jdk" >> /home/ubuntu/deployment.log
 su ubuntu -c "parallel-ssh -h /home/ubuntu/hosts.lst \"sudo mkdir /usr/lib/hadoop\""
@@ -152,9 +186,9 @@ su ubuntu -c "/usr/lib/hadoop/hadoop/bin/hdfs namenode -format"
 su ubuntu -c "/usr/lib/hadoop/hadoop/sbin/start-dfs.sh"
 su ubuntu -c "/usr/lib/hadoop/hadoop/sbin/start-yarn.sh"
 
-cd /home/ubuntu
-git clone https://github.com/Pentadactylus/yarn_jars.git
-echo "CLASSPATH=/home/ubuntu/yarn_jars/hadoop-client-1.2.1.jar:/home/ubuntu/yarn_jars/commons-cli-1.2.jar:/home/ubuntu/yarn_jars/hadoop-core-1.2.1.jar" >> /etc/bash.bashrc
+#cd /home/ubuntu
+#git clone https://github.com/Pentadactylus/yarn_jars.git
+#echo "CLASSPATH=/home/ubuntu/yarn_jars/hadoop-client-1.2.1.jar:/home/ubuntu/yarn_jars/commons-cli-1.2.jar:/home/ubuntu/yarn_jars/hadoop-core-1.2.1.jar" >> /etc/bash.bashrc
 
 echo "hadoop cluster ready" >> /home/ubuntu/deployment.log
 duration=$SECONDS
@@ -164,6 +198,9 @@ echo "deployment took me $duration seconds" >> /home/ubuntu/deployment.log
 echo "deployment took me $duration seconds"
 
 echo `date` >> /home/ubuntu/deployment.log
+
+# state 8
+setState
 
 # in the following line, the whole regular output will be redirected to the
 # file debug.log in the user's home directory and the error output to the file

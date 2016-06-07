@@ -20,6 +20,9 @@ from sm.log import LOG
 from sm.config import CONFIG
 from keystoneclient.v2_0 import client as keystoneclient
 from heatclient import client as heatclient
+import urllib2
+from urllib2 import Request
+from status import Status
 import time
 import json
 import copy
@@ -506,15 +509,32 @@ class Retrieve(Task):
         # if no external IP has been assigned (because a possible error happened)
         externalIP = "none"
 
-        # later, all outputs will be iterated and the external_ip one chosen for status value
-        for element in curstack.outputs:
-            if element['output_key']=='external_ip' and element['output_value'] is not None:
-                LOG.debug("external IP: "+element['output_value'])
-                externalIP = element['output_value']
-                break
+        try:
+            self.entity.attributes['stack_status'] = copy.deepcopy(curstack.stack_status)
+            self.entity.attributes['stack_status_reason'] = copy.deepcopy(curstack.stack_status_reason)
 
-        # the value will be saved among the attributes which will be returned to the user
-        self.entity.attributes['externalIP'] = copy.deepcopy(externalIP)
+            # later, all outputs will be iterated and the external_ip one chosen for status value
+            for element in curstack.outputs:
+                if element['output_key']=='external_ip' and element['output_value'] is not None:
+                    LOG.debug("external IP: "+element['output_value'])
+                    externalIP = element['output_value']
+                    break
+
+            # the value will be saved among the attributes which will be returned to the user
+            self.entity.attributes['externalIP'] = copy.deepcopy(externalIP)
+        except:
+            self.entity.attributes['externalIP'] = "none"
+            pass
+
+
+        if externalIP is not "none":
+            statusCode, statusText = self.__getState( externalIP, "Hadoop" )
+        else:
+            statusCode = 0
+            statusText = "Cluster is being deployed by OpenStack"
+
+        self.entity.attributes['statusCode'] = copy.deepcopy(str(statusCode))
+        self.entity.attributes['statusText'] = copy.deepcopy(statusText)
 
         elapsed_time = time.time() - self.start_time
         infoDict = {
@@ -525,6 +545,25 @@ class Retrieve(Task):
                     }
         LOG.debug(json.dumps(infoDict))
         return self.entity, self.extras
+
+    def __getState(self, ip, framework ):
+        if ip is None:
+            return 0, "not deployed by OpenStack"
+
+        state = None
+        try:
+            response = urllib2.urlopen(Request('http://'+ip+':8084/status.log'))
+            state = int(response.read())
+        except:
+            pass
+
+        if state is None:
+            return 0, "waiting for framework deployment on cluster"
+
+        statusArray = Status.getStatusArray(framework)
+        if len(statusArray) <= state:
+            return -1, "there is no state like this"
+        return state, statusArray[ state ]
 
 # can only be executed when provisioning is complete
 class Update(Task):

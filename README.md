@@ -42,8 +42,8 @@ The most basic need is an OpenStack installation with access to the necessary re
 3. At this point, DISCO can be installed.
 
     ```
-    git clone -b hadoop_sm https://github.com/Pentadactylus/sm_openstack
-    cd sm_openstack
+    git clone https://github.com/icclab/disco.git
+    cd disco
     sudo python setup.py install
     ```
     
