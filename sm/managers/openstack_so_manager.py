@@ -232,7 +232,7 @@ class Deploy(Task):
                     return ""
 
         # the rootFolder is needed in order to load the config files
-        self.rootFolder = getAttr('icclab.haas.rootfolder')
+        self.rootFolder = CONFIG.get('disco','root_folder')
         if self.rootFolder=="":
             # if no rootFolder has been provided, take the path it's located
             # within the Docker image
