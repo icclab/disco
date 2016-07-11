@@ -552,7 +552,9 @@ class Retrieve(Task):
 
         state = None
         try:
-            response = urllib2.urlopen(Request('http://'+ip+':8084/status.log'))
+            # timeout of 0.1 seconds needed as without it, this call would be stuck;
+            # maybe less would be enough, but it always depends on the network connection
+            response = urllib2.urlopen(Request('http://'+ip+':8084/status.log'), None, 0.1)
             state = int(response.read())
         except:
             pass
