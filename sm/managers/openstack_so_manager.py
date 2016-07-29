@@ -20,6 +20,7 @@ from sm.log import LOG
 from sm.config import CONFIG
 from keystoneclient.v2_0 import client as keystoneclient
 from heatclient import client as heatclient
+from novaclient import client as novaclient
 import urllib2
 from urllib2 import Request
 from status import Status
@@ -396,6 +397,10 @@ class Deploy(Task):
                 floatingIpAssoc = floatingIpAssoc+floatingIpId
             floatingIpAssoc += "\n      port_id: { get_resource: hadoop_port }\n\n"
 
+
+        memVals = self.__get_hadoop_memory_values(slaveFlavor)
+
+
         # the cluster's heat template will have to be configured
         replaceDict = {"$master_bash.sh$": masterbash,
                        "$paramsslave$": paramsSlave,
@@ -425,8 +430,13 @@ class Deploy(Task):
 
                     }
 
+        # do basic configuration
         for key, value in replaceDict.iteritems():
             clusterTemplate = clusterTemplate.replace(key, value)
+
+        # insert memory values
+        for key, value in memVals.iteritems():
+            clusterTemplate = clusterTemplate.replace(key, str(value))
 
         # for debugging purposes, the template can be saved locally
         if saveToLocalPath is not "":
@@ -448,6 +458,69 @@ class Deploy(Task):
             #                                           self.token,
             #                                           name=clusterName+"_"+str(uuid.uuid1()))
             # LOG.info('Hadoop stack ID: ' + self.hadoop_master)
+
+    def __get_hadoop_memory_values(self, flavorID):
+        nc = novaclient.Client("2.0",
+                               self.extras['username'],
+                               self.extras['password'],
+                               self.extras['tenant_name'],
+                               CONFIG.get('service_manager','design_uri',''),
+                               region_name=self.extras['region']
+                               )
+        curFlavor = None
+        try:
+            curFlavor = nc.flavors.find(id=flavorID)
+        except:
+            print "didn't find flavor with ID "+flavorID
+
+        # curFlavor.ram [MB], curFlavor.disk [GB]
+
+        # class test (object):
+        #     def __init__(self):
+        #         self.ram = 8192
+        #         self.vcpus = 8
+        #         self.disk = 20
+        # curFlavor = test()
+
+        # determine the reserved memory for system
+        # [RAM in MB, reserved system memory in MB]
+        sysMem = 0
+        resMemRecommendation = [[4*1024,1*1024],[8*1024,2*1024],[16*1024,2*1024],[24*1024,4*1024],[48*1024,6*1024],[64*1024,8*1024],[72*1024,8*1024],[96*1024,12*1024],[128*1024,24*1024],[256*1024,32*1024],[512*1024,64*1024]]
+        for curMem in resMemRecommendation:
+            if curMem[0]<=curFlavor.ram:
+                sysMem = curMem[1]
+            else:
+                break
+
+        # determine the minimum container memory size
+        # [RAM in MB, Container memory in MB]
+        minContSizeRecommendation = [[0,256],[4*1024,512],[8*1024,1024],[24*1024,2048]]
+        for curSize in minContSizeRecommendation:
+            if (curFlavor.ram-sysMem)>curSize[0]:
+                minContSize = curSize[1]
+            else:
+                break
+
+        # #containers on each slave node
+        containerCount = min(
+            (curFlavor.ram-sysMem)/minContSize,
+            2*curFlavor.vcpus,
+            1.8*curFlavor.disk
+        )
+
+        containerMemory = max(minContSize, (curFlavor.ram-sysMem) / containerCount)
+
+        memVals = { '$mapreduce.map.java.opts$':              '-Xmx'+str(int(0.8*containerMemory))+'m',
+                    '$mapreduce.reduce.java.opts$':           '-Xmx'+str(int(0.8*2*containerMemory))+'m',
+                    '$mapreduce.map.memory.mb$':              int(containerMemory),
+                    '$mapreduce.reduce.memory.mb$':           int(2*containerMemory),
+                    '$yarn.app.mapreduce.am.resource.mb$':	int(2*containerMemory),
+                    '$yarn.scheduler.minimum-allocation-mb$':	int(containerMemory),
+                    '$yarn.scheduler.maximum-allocation-mb$':	int(containerCount*containerMemory),
+                    '$yarn.nodemanager.resource.memory-mb$':  int(containerCount*containerMemory),
+                    '$yarn.app.mapreduce.am.command-opts$':   '-Xmx'+str(int(0.8*2*containerMemory))+'m'
+                    }
+        return memVals
 
 class Provision(Task):
     def __init__(self, entity, extras):
