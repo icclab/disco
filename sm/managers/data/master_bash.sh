@@ -145,6 +145,8 @@ transferFirstUnpackLater
 setState
 
 echo "setting up hadoop & jdk" >> /home/ubuntu/deployment.log
+# copy the SSH files to all slaves
+su ubuntu -c "parallel-scp -h ~/hosts.lst ~/.ssh/{config,id_rsa,id_rsa.pub} ~/.ssh"
 su ubuntu -c "parallel-ssh -h /home/ubuntu/hosts.lst \"sudo mkdir /usr/lib/hadoop\""
 su ubuntu -c "parallel-ssh -h /home/ubuntu/hosts.lst \"sudo mv /home/ubuntu/hadoop-2.7.1 /usr/lib/hadoop\""
 su ubuntu -c "parallel-ssh -h /home/ubuntu/hosts.lst \"sudo ln -s /usr/lib/hadoop/hadoop-2.7.1 /usr/lib/hadoop/hadoop\""
