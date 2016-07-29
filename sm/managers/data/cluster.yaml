@@ -1,6 +1,11 @@
 heat_template_version: 2014-10-16
 
 parameters:
+  master_ssh_pub_key:
+    type: string
+    description: registered SSH public key for the master
+    default: $master_ssh_key_entry$
+
   master_image:
     type: string
     description: Which image should be the master's os setup with?
@@ -56,7 +61,13 @@ parameters:
     description: nameservers for the used subnet
     default: $subnet_dns_servers$
 
+  external_network_name:
+    type: string
+    description: name of the external network connection (network name)
+    default: $external_network$
+
 resources:
+############### network ##############
 $users_ssh_public_key$  sshpublickey:
     properties:
       name: $ssh_cluster_pub_key$
@@ -72,7 +83,8 @@ $users_ssh_public_key$  sshpublickey:
       {"direction":"ingress","protocol":"tcp","port_range_min":"8025","port_range_max":"8088"},
       {"direction":"ingress","protocol":"tcp","port_range_min":"34342","port_range_max":"34342"},
       {"direction":"ingress","protocol":"tcp","port_range_min":"50010","port_range_max":"50105"},
-      {"direction":"ingress","protocol":"tcp","port_range_min":"54310","port_range_max":"54310"}
+      {"direction":"ingress","protocol":"tcp","port_range_min":"54310","port_range_max":"54310"},
+      {"direction":"ingress","protocol":"icmp"}
       ]
 
   hadoop_network:
@@ -91,6 +103,10 @@ $users_ssh_public_key$  sshpublickey:
         - start: { get_param: allocation_pool_start }
           end: { get_param: allocation_pool_end }
 
+############### end network ##############
+
+############### master ################
+
   hadoop_port:
     type: OS::Neutron::Port
     properties:
@@ -105,7 +121,7 @@ $users_ssh_public_key$  sshpublickey:
       name: { get_param: master_name }
       image: { get_param: master_image }
       flavor: { get_param: master_flavor }
-      key_name: $master_ssh_key_entry$
+      key_name: { get_param: master_ssh_pub_key }
       networks:
         - port: { get_resource: hadoop_port }
       user_data_format: RAW
@@ -116,14 +132,17 @@ $master_bash.sh$
           params:
 $paramsslave$
 
+############### end master ##############
+
 $slaves$
+############### external connection ##############
 
 $floating_ip_resource$
   hadoop_router:
     type: OS::Neutron::Router
     properties:
       external_gateway_info:
-        network: $external_network$
+        network: { get_param: external_network_name }
 
 # the disposal problem could be solved with a depends_on: here - see bug https://bugs.launchpad.net/heat/+bug/1299259 ; see also https://review.openstack.org/#/c/115336/ or https://bugs.launchpad.net/murano/+bug/1356721
 # https://translate.google.com/translate?sl=auto&tl=en&js=y&prev=_t&hl=en&ie=UTF-8&u=http%3A%2F%2Fhabrahabr.ru%2Fcompany%2Fselectel%2Fblog%2F247307%2F&edit-text=&act=url
@@ -134,5 +153,8 @@ $floating_ip_resource$
       subnet_id: { get_resource: hadoop_subnet }
 
 $floating_ip_assoc$
+
+############### end external connection ##############
+
 outputs:
 $external_ip_output$
