@@ -38,4 +38,10 @@
     <value>0</value>
     <description>disable server trash</description>
   </property>
+
+  <property>
+    <name>io.file.buffer.size</name>
+    <value>131072</value>
+  </property>
 </configuration>
+

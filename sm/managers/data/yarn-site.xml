@@ -15,10 +15,29 @@
 <configuration>
 
 <!-- Site specific YARN configuration properties -->
+ <property>
+  <name>yarn.resourcemanager.resource-tracker.address</name>
+  <value>$masternode$:8025</value>
+  <description>Enter your ResourceManager hostname.</description>
+ </property>
+
+    <property>
+        <name>yarn.nodemanager.aux-services</name>
+        <value>mapreduce_shuffle</value>
+    </property>
+
 <property>
- <name>yarn.resourcemanager.resource-tracker.address</name>
- <value>$masternode$:8025</value>
- <description>Enter your ResourceManager hostname.</description>
+      <name>yarn.resourcemanager.scheduler.class</name>
+      <value>org.apache.hadoop.yarn.server.resourcemanager.scheduler.fair.FairScheduler</value>
+</property>
+<property>
+      <name>yarn.scheduler.fair.allocation.file</name>
+      <value>/usr/lib/hadoop/hadoop-2.7.1/share/hadoop/tools/sls/sample-conf/fair-scheduler.xml</value>
+</property>
+
+<property>
+<name>yarn.resourcemanager.address</name>
+<value>$masternode$:8032</value>
 </property>
 
 </configuration>

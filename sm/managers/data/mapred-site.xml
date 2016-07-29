@@ -18,6 +18,11 @@
 
 <configuration>
   <property>
+    <name>mapreduce.task.io.sort.mb</name>
+    <value>150</value>
+  </property>
+
+  <property>
     <name>mapred.job.tracker</name>
     <value>$masternode$:54311</value>
     <description>The host and port that the MapReduce job tracker runs
@@ -25,4 +30,74 @@
     and reduce task.
     </description>
   </property>
+
+  <property>
+    <name>mapreduce.framework.name</name>
+    <value>yarn</value>
+    <description>Which framework should be used for the mapreduce job?
+      local - do it locally
+      classic - the old-fashioned MR1 way
+      yarn - the new MR2 way
+    </description>
+  </property>
+
+  <property>
+    <name>mapreduce.map.java.opts</name>
+    <value>$mapreduce.map.java.opts$</value>
+  </property>
+
+  <property>
+    <name>mapreduce.reduce.java.opts</name>
+    <value>$mapreduce.reduce.java.opts$</value>
+  </property>
+
+  <property>
+    <name>mapreduce.map.memory.mb</name>
+    <value>$mapreduce.map.memory.mb$</value>
+  </property>
+
+  <property>
+    <name>mapreduce.reduce.memory.mb</name>
+    <value>$mapreduce.reduce.memory.mb$</value>
+  </property>
+
+
+
+  <property>
+   <name>yarn.resourcemanager.resource-tracker.address</name>
+   <value>$masternode$:8025</value>
+   <description>Enter your ResourceManager hostname.</description>
+  </property>
+
+  <property>
+    <name>yarn.nodemanager.aux-services</name>
+    <value>mapreduce_shuffle</value>
+  </property>
+
+  <property>
+    <name>yarn.scheduler.minimum-allocation-mb</name>
+    <value>$yarn.scheduler.minimum-allocation-mb$</value>
+  </property>
+
+  <property>
+    <name>yarn.scheduler.maximum-allocation-mb</name>
+    <value>$yarn.scheduler.maximum-allocation-mb$</value>
+  </property>
+
+  <property>
+    <name>yarn.nodemanager.resource.memory-mb</name>
+    <value>$yarn.nodemanager.resource.memory-mb$</value>
+  </property>
+
+  <property>
+    <name>yarn.app.mapreduce.am.resource.mb</name>
+    <value>$yarn.app.mapreduce.am.resource.mb$</value>
+  </property>
+
+  <property>
+    <name>yarn.app.mapreduce.am.command-opts</name>
+    <value>$yarn.app.mapreduce.am.command-opts$</value>
+  </property>
+
 </configuration>
+
