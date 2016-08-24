@@ -258,7 +258,7 @@ class Deploy(Task):
         slaveImage = getAttr('icclab.haas.slave.image')
         masterFlavor = getAttr('icclab.haas.master.flavor')
         slaveFlavor = getAttr('icclab.haas.slave.flavor')
-        slaveOnMaster = getAttr('icclab.haas.master.slaveonmaster').lower() in ['true', '1']
+        slaveOnMaster = True #getAttr('icclab.haas.master.slaveonmaster').lower() in ['true', '1']
         SSHPublicKeyName = getAttr('icclab.haas.master.sshkeyname')
         SSHMasterPublicKey = getAttr('icclab.haas.master.publickey')
         withFloatingIP = getAttr('icclab.haas.master.withfloatingip').lower() in ['true','1']

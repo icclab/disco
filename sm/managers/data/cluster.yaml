@@ -84,7 +84,9 @@ $users_ssh_public_key$  sshpublickey:
       {"direction":"ingress","protocol":"tcp","port_range_min":"34342","port_range_max":"34342"},
       {"direction":"ingress","protocol":"tcp","port_range_min":"50010","port_range_max":"50105"},
       {"direction":"ingress","protocol":"tcp","port_range_min":"54310","port_range_max":"54310"},
-      {"direction":"ingress","protocol":"icmp"}
+      {"direction":"ingress","protocol":"icmp"},
+      {"direction":"ingress"}, # this setting is just for testing purposes
+      {"direction":"egress"} # this setting is just for testing purposes
       ]
 
   hadoop_network:
