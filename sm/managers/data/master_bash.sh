@@ -70,6 +70,7 @@ mv -f /root/hosts.replacement /home/ubuntu/hadoopconf
 cat - > /home/ubuntu/hadoopconf/yarn-site.xml << 'EOF'
 $yarn-site.xml$
 EOF
+sed -i 's/\$masteraddress\$/'`/sbin/ifconfig eth0 | grep 'inet addr' | cut -d: -f2 | awk '{print $1}'`'/g' /home/ubuntu/hadoopconf/yarn-site.xml
 
 # create core-site.xml:
 cat - > /home/ubuntu/hadoopconf/core-site.xml << 'EOF'
