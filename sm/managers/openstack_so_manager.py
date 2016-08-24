@@ -298,6 +298,7 @@ class Deploy(Task):
         mapred_site_xml = getFileContent("mapred-site.xml")
         hdfs_site_xml = getFileContent("hdfs-site.xml")
         hadoop_env_sh = getFileContent("hadoop-env.sh")
+        jupyter_notebook_config_py = getFileContent("jupyter_notebook_config.py")
 
         slaves = ""
         hostFileContent = ""
@@ -360,7 +361,8 @@ class Deploy(Task):
                         "$forloopslaves$": forLoopSlaves,
                         "$for_loop_slaves$": hostsListFile,
                         "$insert_master_pub_key$": insertMasterPublicKey,
-                        "$disk_id$": diskId
+                        "$disk_id$": diskId,
+                        "$jupyter_notebook_config.py$": jupyter_notebook_config_py
                         }
         for key, value in replaceDict.iteritems():
             masterBash = masterBash.replace(key, value)

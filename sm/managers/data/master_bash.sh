@@ -194,6 +194,37 @@ su ubuntu -c "/usr/lib/hadoop/hadoop/sbin/start-yarn.sh"
 #echo "CLASSPATH=/home/ubuntu/yarn_jars/hadoop-client-1.2.1.jar:/home/ubuntu/yarn_jars/commons-cli-1.2.jar:/home/ubuntu/yarn_jars/hadoop-core-1.2.1.jar" >> /etc/bash.bashrc
 
 echo "hadoop cluster ready" >> /home/ubuntu/deployment.log
+
+# now, zeppelin should be installed
+echo "now, installing zeppelin" >> /home/ubuntu/deployment.log
+su ubuntu -c "mkdir /home/ubuntu/zeppelin"
+cd /home/ubuntu/zeppelin
+su ubuntu -c "wget http://mirror.switch.ch/mirror/apache/dist/zeppelin/zeppelin-0.6.1/zeppelin-0.6.1-bin-all.tgz"
+su ubuntu -c "tar -xvzf /home/ubuntu/zeppelin/zeppelin-0.6.1-bin-all.tgz"
+su ubuntu -c "mkdir -p /home/ubuntu/zeppelin/zeppelin-0.6.1-bin-all/{logs,run}"
+su ubuntu -c "source /etc/bash.bashrc && /home/ubuntu/zeppelin/zeppelin-0.6.1-bin-all/bin/zeppelin-daemon.sh start"
+echo "zeppelin ready" >> /home/ubuntu/deployment.log
+
+echo "downloading test file for zeppelin" >> /home/ubuntu/deployment.log
+cd /home/ubuntu
+apt-get install -y unzip
+su ubuntu -c "wget http://archive.ics.uci.edu/ml/machine-learning-databases/00222/bank.zip"
+su ubuntu -c "unzip /home/ubuntu/bank.zip"
+su ubuntu -c "/usr/lib/hadoop/hadoop/bin/hdfs dfs -copyFromLocal /home/ubuntu/bank-full.csv /"
+
+# now, let's get to jupyter
+echo "installing jupyter" >> /home/ubuntu/deployment.log
+apt-get install -y build-essential python3-dev python3-pip
+pip3 install jupyter
+
+# create mapred-site.xml:
+su ubuntu -c "mkdir /home/ubuntu/.jupyter"
+cat - >> /home/ubuntu/.jupyter/jupyter_notebook_config.py << 'EOF'
+$jupyter_notebook_config.py$
+EOF
+chown ubuntu:ubuntu /home/ubuntu/.jupyter/jupyter_notebook_config.py
+su ubuntu -c "jupyter-notebook &"
+
 duration=$SECONDS
 # save it into deployment.log...
 echo "deployment took me $duration seconds" >> /home/ubuntu/deployment.log
