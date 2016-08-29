@@ -202,15 +202,19 @@ cd /home/ubuntu/zeppelin
 su ubuntu -c "wget http://mirror.switch.ch/mirror/apache/dist/zeppelin/zeppelin-0.6.1/zeppelin-0.6.1-bin-all.tgz"
 su ubuntu -c "tar -xvzf /home/ubuntu/zeppelin/zeppelin-0.6.1-bin-all.tgz"
 su ubuntu -c "mkdir -p /home/ubuntu/zeppelin/zeppelin-0.6.1-bin-all/{logs,run}"
+# port has to be changed to 8070 as 8080 is Spark's standard Web UI port
+su ubuntu -c "cat /home/ubuntu/zeppelin/zeppelin-0.6.1-bin-all/conf/zeppelin-site.xml.template | sed \"s/8080/8070/\" > /home/ubuntu/zeppelin/zeppelin-0.6.1-bin-all/conf/zeppelin-site.xml"
 su ubuntu -c "source /etc/bash.bashrc && /home/ubuntu/zeppelin/zeppelin-0.6.1-bin-all/bin/zeppelin-daemon.sh start"
 echo "zeppelin ready" >> /home/ubuntu/deployment.log
+# zeppelin is installed and running
 
-echo "downloading test file for zeppelin" >> /home/ubuntu/deployment.log
-cd /home/ubuntu
-apt-get install -y unzip
-su ubuntu -c "wget http://archive.ics.uci.edu/ml/machine-learning-databases/00222/bank.zip"
-su ubuntu -c "unzip /home/ubuntu/bank.zip"
-su ubuntu -c "/usr/lib/hadoop/hadoop/bin/hdfs dfs -copyFromLocal /home/ubuntu/bank-full.csv /"
+
+#echo "downloading test file for zeppelin" >> /home/ubuntu/deployment.log
+#cd /home/ubuntu
+#apt-get install -y unzip
+#su ubuntu -c "wget http://archive.ics.uci.edu/ml/machine-learning-databases/00222/bank.zip"
+#su ubuntu -c "unzip /home/ubuntu/bank.zip"
+#su ubuntu -c "/usr/lib/hadoop/hadoop/bin/hdfs dfs -copyFromLocal /home/ubuntu/bank-full.csv /"
 
 # now, let's get to jupyter
 echo "installing jupyter" >> /home/ubuntu/deployment.log
@@ -224,6 +228,33 @@ $jupyter_notebook_config.py$
 EOF
 chown ubuntu:ubuntu /home/ubuntu/.jupyter/jupyter_notebook_config.py
 su ubuntu -c "jupyter-notebook &"
+echo "jupyter ready" >> /home/ubuntu/deployment.log
+# jupyter is installed and running
+
+
+# install Apache Spark on master node
+echo "downloading Apache Spark to master node" >> /home/ubuntu/deployment.log
+su ubuntu -c "sudo mkdir /home/ubuntu/spark"
+cd /home/ubuntu/spark
+chown ubuntu:ubuntu /home/ubuntu/spark
+su ubuntu -c "wget http://d3kbcqa49mib13.cloudfront.net/spark-2.0.0-bin-hadoop2.7.tgz"
+#su ubuntu -c "tar -xzf /home/ubuntu/spark/spark-2.0.0-bin-hadoop2.7.tgz"
+su ubuntu -c "parallel-ssh -t 2000 -h /home/ubuntu/hosts.lst \"sudo sh -c \\\"echo \\\\\\\"SPARK_HOME=\\\\\\\\\\\\\\\"/usr/lib/spark/spark\\\\\\\\\\\\\\\"\\\\nJAVA_HOME=\\\\\\\\\\\\\\\"/usr/lib/java/jdk\\\\\\\\\\\\\\\"\\\\\\\" >> \\\/etc\\\/environment\\\"\""
+su ubuntu -c "parallel-ssh -t 2000 -h ~/hosts.lst \"sudo mkdir /usr/lib/spark\""
+su ubuntu -c "parallel-ssh -t 2000 -h ~/hosts.lst \"sudo chown ubuntu:ubuntu /usr/lib/spark/\""
+su ubuntu -c "parallel-scp -h ~/hosts.lst ~/spark/spark-2.0.0-bin-hadoop2.7.tgz /usr/lib/spark"
+su ubuntu -c "parallel-ssh -t 2000 -h /home/ubuntu/hosts.lst \"tar -xzf /usr/lib/spark/spark-2.0.0-bin-hadoop2.7.tgz\""
+#su ubuntu -c "parallel-ssh -t 2000 -h ~/hosts.lst \"mv spark-2.0.0-bin-hadoop2.7 /usr/lib/spark/\""
+su ubuntu -c "parallel-ssh -t 2000 -h ~/hosts.lst \"mv spark-2.0.0-bin-hadoop2.7 /usr/lib/spark\""
+su ubuntu -c "parallel-ssh -t 2000 -h ~/hosts.lst \"ln -s /usr/lib/spark/spark-2.0.0-bin-hadoop2.7/ /usr/lib/spark/spark\""
+cat - > /usr/lib/spark/spark/conf/slaves << 'EOF'
+$masternodeasslave$$slavesfile$
+EOF
+su ubuntu -c "/usr/lib/spark/spark/sbin/start-master.sh"
+su ubuntu -c "/usr/lib/spark/spark/sbin/start-slaves.sh"
+echo "Spark installed and started" >> /home/ubuntu/deployment.log
+# at this point, Spark cluster is installed and running
+
 
 duration=$SECONDS
 # save it into deployment.log...
