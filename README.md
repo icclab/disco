@@ -28,7 +28,7 @@ The most basic need is an OpenStack installation with access to the necessary re
 1. The dependencies need to be installed first which include some python tools.
     
     ```
-    sudo apt-get install -y git python-pip python-dev python-flask libffi-dev
+    sudo apt-get install -y git python-pip python-dev python-flask libffi-dev libssl-dev python-novaclient python-flask
     ```
 
 2. Now, the SDK can be installed.
@@ -51,6 +51,7 @@ The most basic need is an OpenStack installation with access to the necessary re
     - manifest: the path to the file service_manifest.json which is in the sm/managers/data subfolder of DISCO but could be at any other location.
     - design_uri: Keystone's public endpoint in OpenStack.
     - service_params: the path of the service_params.json file; located within the etc subfolder of DISCO.
+    - root_folder: the path of the data template folder required for heat template creation; usually under sm/managers/data
 
 5. As soon as these changes are made, you can start DISCO with the command
 
@@ -59,6 +60,8 @@ The most basic need is an OpenStack installation with access to the necessary re
     ```
     
     At this point, DISCO is running and you can issue the HTTP commands to create a cluster.
+    
+6. If you are running into problems, you might have to upgrade one package or another, such as requests or pbr. (which was the case for me)
     
 ### Creating a cluster
 
@@ -77,14 +80,12 @@ In order to have a distributed computing cluster setup, you will need to issue a
 2. With the following command, a cluster can be created:
 
    ```
-   curl -v -X POST http://xxx.xxx.xxx.xxx:8888/haas/ -H 'Category: haas; scheme="http://schemas.cloudcomplab.ch/occi/sm#"; class="kind";' -H "X-User-Name: $OS_USERNAME" -H "X-Tenant-Name: $OS_TENANT_NAME" -H "X-Password: $OS_PASSWORD" -H "X-Region-Name: $OS_REGION_NAME" -H 'content-type: text/occi' -H 'X-OCCI-Attribute: icclab.haas.rootfolder="/path/to/sm/managers/data",icclab.haas.master.sshkeyname="<your SSH public key name>"'
+   curl -v -X POST http://xxx.xxx.xxx.xxx:8888/haas/ -H 'Category: haas; scheme="http://schemas.cloudcomplab.ch/occi/sm#"; class="kind";' -H "X-User-Name: $OS_USERNAME" -H "X-Tenant-Name: $OS_TENANT_NAME" -H "X-Password: $OS_PASSWORD" -H "X-Region-Name: $OS_REGION_NAME" -H 'content-type: text/occi' -H 'X-OCCI-Attribute: icclab.haas.master.sshkeyname="<your SSH public key name>"'
    ```
 
    Two additional headers are included in this command: one for the region where the cluster should be deployed and another for the parameters for the cluster setup. The command above contains the minimum of the required parameters which will setup a cluster.
    
-   You can see two parameters which are absolutely necessary for each cluster:
-   - icclab.haas.rootfolder specifies the path to the data folder for the heat template fragments. Again, in the standard version, it can be found under sm/managers/data in the DISCO repository.
-   - icclab.haas.master.sshkeyname tells DISCO which (already registered) SSH keyname should be inserted within the new cluster's master node.
+   You can see one parameter which is absolutely necessary for each cluster: icclab.haas.master.sshkeyname tells DISCO which (already registered) SSH keyname should be inserted within the new cluster's master node.
    
    A successful deployment will be acknowledged with an 'OK' and a UUID which identifies the created cluster within DISCO. It is within the location field of the response. Remember this because it is the address which you will send the following requests to.
 
@@ -94,7 +95,7 @@ In order to have a distributed computing cluster setup, you will need to issue a
    curl -v -X GET http://xxx.xxx.xxx.xxx:8888/haas/ -H 'Accept: text/occi' -H "X-User-Name: $OS_USERNAME" -H "X-Tenant-Name: $OS_TENANT_NAME" -H "X-Password: $OS_PASSWORD"
    ```
    
-   This will list all clusters which have been deployed for the given username on the given DISCO instance.
+   This will list all clusters which have been deployed for the given username / tenant on the given DISCO instance.
    
 4. If you want to know the IP of your newly created cluster, issue the following HTTP command:
 
@@ -111,7 +112,7 @@ In order to have a distributed computing cluster setup, you will need to issue a
 5. As soon as you have the IP of the master node, you can login over SSH:
 
    ```
-   ssh ubuntu@external.ip.of.master
+   ssh ubuntu@externalIP
    ```
    
    Because the deployment on OpenStack is just a part of the cluster provisioning, your cluster most likely isn't ready yet for big data processing. But as soon as you have logged in, you can check the deployment status:
@@ -125,7 +126,7 @@ In order to have a distributed computing cluster setup, you will need to issue a
 6. If you would like to delete the cluster again, the following command will help you
 
     ```
-    curl -v -X DELETE http://xxx.xxx.xxx.xxx:8888/haas/UUID -H 'Category: haas; scheme="http://schemas.cloudcomplab.ch/occi/sm#"; class="kind";' -H 'content-type: text/occi' -H "X-User-Name: $OS_USERNAME" -H "X-Password: $OS_PASSWORD" -H "X-Tenant-Name: $OS_TENANT_NAME" -H 'X-Region-Name: $OS_REGION_NAME"
+    curl -v -X DELETE http://xxx.xxx.xxx.xxx:8888/haas/UUID -H 'Category: haas; scheme="http://schemas.cloudcomplab.ch/occi/sm#"; class="kind";' -H 'content-type: text/occi' -H "X-User-Name: $OS_USERNAME" -H "X-Password: $OS_PASSWORD" -H "X-Tenant-Name: $OS_TENANT_NAME" -H "X-Region-Name: $OS_REGION_NAME"
     ```
 
 7. After this last step, you can check with the command at a previous step that the cluster is not registered within DISCO anymore and the resources are freed. You can also double check that information on OpenStack Horizon. (Orchestration -> Stacks)
