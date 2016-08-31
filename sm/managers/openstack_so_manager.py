@@ -462,7 +462,7 @@ class Deploy(Task):
             # LOG.info('Hadoop stack ID: ' + self.hadoop_master)
 
     def __get_hadoop_memory_values(self, flavorID):
-        nc = novaclient.Client("2.0",
+        nc = novaclient.Client("2",
                                self.extras['username'],
                                self.extras['password'],
                                self.extras['tenant_name'],
