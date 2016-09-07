@@ -195,41 +195,7 @@ su ubuntu -c "/usr/lib/hadoop/hadoop/sbin/start-yarn.sh"
 
 echo "hadoop cluster ready" >> /home/ubuntu/deployment.log
 
-# now, zeppelin should be installed
-echo "now, installing zeppelin" >> /home/ubuntu/deployment.log
-su ubuntu -c "mkdir /home/ubuntu/zeppelin"
-cd /home/ubuntu/zeppelin
-su ubuntu -c "wget http://mirror.switch.ch/mirror/apache/dist/zeppelin/zeppelin-0.6.1/zeppelin-0.6.1-bin-all.tgz"
-su ubuntu -c "tar -xvzf /home/ubuntu/zeppelin/zeppelin-0.6.1-bin-all.tgz"
-su ubuntu -c "mkdir -p /home/ubuntu/zeppelin/zeppelin-0.6.1-bin-all/{logs,run}"
-# port has to be changed to 8070 as 8080 is Spark's standard Web UI port
-su ubuntu -c "cat /home/ubuntu/zeppelin/zeppelin-0.6.1-bin-all/conf/zeppelin-site.xml.template | sed \"s/8080/8070/\" > /home/ubuntu/zeppelin/zeppelin-0.6.1-bin-all/conf/zeppelin-site.xml"
-su ubuntu -c "source /etc/bash.bashrc && /home/ubuntu/zeppelin/zeppelin-0.6.1-bin-all/bin/zeppelin-daemon.sh start"
-echo "zeppelin ready" >> /home/ubuntu/deployment.log
-# zeppelin is installed and running
 
-
-#echo "downloading test file for zeppelin" >> /home/ubuntu/deployment.log
-#cd /home/ubuntu
-#apt-get install -y unzip
-#su ubuntu -c "wget http://archive.ics.uci.edu/ml/machine-learning-databases/00222/bank.zip"
-#su ubuntu -c "unzip /home/ubuntu/bank.zip"
-#su ubuntu -c "/usr/lib/hadoop/hadoop/bin/hdfs dfs -copyFromLocal /home/ubuntu/bank-full.csv /"
-
-# now, let's get to jupyter
-echo "installing jupyter" >> /home/ubuntu/deployment.log
-apt-get install -y build-essential python3-dev python3-pip
-pip3 install jupyter
-
-# create mapred-site.xml:
-su ubuntu -c "mkdir /home/ubuntu/.jupyter"
-cat - >> /home/ubuntu/.jupyter/jupyter_notebook_config.py << 'EOF'
-$jupyter_notebook_config.py$
-EOF
-chown ubuntu:ubuntu /home/ubuntu/.jupyter/jupyter_notebook_config.py
-su ubuntu -c "jupyter-notebook &"
-echo "jupyter ready" >> /home/ubuntu/deployment.log
-# jupyter is installed and running
 
 
 # install Apache Spark on master node
@@ -254,6 +220,54 @@ su ubuntu -c "/usr/lib/spark/spark/sbin/start-master.sh"
 su ubuntu -c "/usr/lib/spark/spark/sbin/start-slaves.sh"
 echo "Spark installed and started" >> /home/ubuntu/deployment.log
 # at this point, Spark cluster is installed and running
+
+
+
+
+# now, zeppelin should be installed
+echo "now, installing zeppelin" >> /home/ubuntu/deployment.log
+mkdir /usr/lib/zeppelin
+chown ubuntu:ubuntu /usr/lib/zeppelin/
+cd /usr/lib/zeppelin/
+su ubuntu -c "wget http://mirror.switch.ch/mirror/apache/dist/zeppelin/zeppelin-0.6.1/zeppelin-0.6.1-bin-all.tgz"
+su ubuntu -c "tar -xvzf /usr/lib/zeppelin/zeppelin-0.6.1-bin-all.tgz"
+su ubuntu -c "mkdir -p /usr/lib/zeppelin/zeppelin-0.6.1-bin-all/{logs,run}"
+su ubuntu -c "ln -s /usr/lib/zeppelin/zeppelin-0.6.1-bin-all /usr/lib/zeppelin/zeppelin"
+# port has to be changed to 8070 as 8080 is Spark's standard Web UI port
+su ubuntu -c "cat /usr/lib/zeppelin/zeppelin/conf/zeppelin-site.xml.template | sed \"s/8080/8070/\" > /usr/lib/zeppelin/zeppelin/conf/zeppelin-site.xml"
+cat - > /usr/lib/zeppelin/zeppelin/conf/zeppelin-env.sh << 'EOF'
+$zeppelin_env_sh$
+EOF
+chown ubuntu:ubuntu /usr/lib/zeppelin/zeppelin/conf/zeppelin-env.sh
+su ubuntu -c "source /etc/bash.bashrc && /usr/lib/zeppelin/zeppelin/bin/zeppelin-daemon.sh start"
+echo "zeppelin ready" >> /home/ubuntu/deployment.log
+# zeppelin is installed and running
+
+
+#echo "downloading test file for zeppelin" >> /home/ubuntu/deployment.log
+cd /home/ubuntu
+apt-get install -y unzip
+su ubuntu -c "wget http://archive.ics.uci.edu/ml/machine-learning-databases/00222/bank.zip"
+su ubuntu -c "unzip /home/ubuntu/bank.zip"
+su ubuntu -c "/usr/lib/hadoop/hadoop/bin/hdfs dfs -copyFromLocal /home/ubuntu/bank-full.csv /"
+
+# now, let's get to jupyter
+echo "installing jupyter" >> /home/ubuntu/deployment.log
+apt-get install -y build-essential python3-dev python3-pip
+pip3 install jupyter
+
+# create mapred-site.xml:
+su ubuntu -c "mkdir /home/ubuntu/.jupyter"
+cat - >> /home/ubuntu/.jupyter/jupyter_notebook_config.py << 'EOF'
+$jupyter_notebook_config.py$
+EOF
+chown ubuntu:ubuntu /home/ubuntu/.jupyter/jupyter_notebook_config.py
+su ubuntu -c "jupyter-notebook &"
+echo "jupyter ready" >> /home/ubuntu/deployment.log
+# jupyter is installed and running
+
+
+
 
 
 duration=$SECONDS

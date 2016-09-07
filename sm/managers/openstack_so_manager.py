@@ -299,6 +299,8 @@ class Deploy(Task):
         hdfs_site_xml = getFileContent("hdfs-site.xml")
         hadoop_env_sh = getFileContent("hadoop-env.sh")
         jupyter_notebook_config_py = getFileContent("jupyter_notebook_config.py")
+        zeppelin_env_sh = getFileContent("zeppelin-env.sh")
+        interpreter_json = getFileContent("interpreter.json")
 
         slaves = ""
         hostFileContent = ""
@@ -362,7 +364,9 @@ class Deploy(Task):
                         "$for_loop_slaves$": hostsListFile,
                         "$insert_master_pub_key$": insertMasterPublicKey,
                         "$disk_id$": diskId,
-                        "$jupyter_notebook_config.py$": jupyter_notebook_config_py
+                        "$jupyter_notebook_config.py$": jupyter_notebook_config_py,
+                        "$zeppelin_env_sh$": zeppelin_env_sh,
+                        "$interpreter_json$": interpreter_json
                         }
         for key, value in replaceDict.iteritems():
             masterBash = masterBash.replace(key, value)
@@ -427,7 +431,7 @@ class Deploy(Task):
                        "$subnet_dns_servers$": subnet_dns_servers,
                        "$ssh_cluster_pub_key$": "ssh_pub_key_"+randomstring,
                        "$hadoop_security_group$": "security_group_"+randomstring,
-                        "$network_name$": "network_"+randomstring,
+                       "$network_name$": "network_"+randomstring,
                        "$external_network$": externalNetwork
 
                     }
