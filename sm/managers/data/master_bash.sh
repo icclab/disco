@@ -22,6 +22,9 @@ function setState() {
 # state 1
 setState
 
+# solve problem with not correctly configured locale...
+echo -e "LC_ALL=en_US.UTF-8\nLANG=en_US.UTF-8" >> /etc/environment
+
 # serve deployment.log
 sh -c "while true; do nc -l -p 8084 < /home/ubuntu/status.log; done" > /dev/null 2>&1 &
 
@@ -221,6 +224,12 @@ su ubuntu -c "/usr/lib/spark/spark/sbin/start-slaves.sh"
 echo "Spark installed and started" >> /home/ubuntu/deployment.log
 # at this point, Spark cluster is installed and running
 
+
+
+# installing prerequisites for Zeppelin
+echo "installing some requisites for Zeppelin" >> /home/ubuntu/deployment.log
+apt-get install -y python3-tk python3-numpy python3-matplotlib
+#
 
 
 
