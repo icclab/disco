@@ -228,7 +228,11 @@ echo "Spark installed and started" >> /home/ubuntu/deployment.log
 
 # installing prerequisites for Zeppelin
 echo "installing some requisites for Zeppelin" >> /home/ubuntu/deployment.log
-apt-get install -y python3-tk python3-numpy python3-matplotlib
+apt-get install -y python3-tk python3-numpy python3-matplotlib xserver-xorg
+rm /usr/bin/python
+ln -s /usr/bin/python3 /usr/bin/python
+X &
+echo "DISPLAY=:0.0" >> /etc/environment
 #
 
 
@@ -248,7 +252,7 @@ cat - > /usr/lib/zeppelin/zeppelin/conf/zeppelin-env.sh << 'EOF'
 $zeppelin_env_sh$
 EOF
 chown ubuntu:ubuntu /usr/lib/zeppelin/zeppelin/conf/zeppelin-env.sh
-su ubuntu -c "source /etc/bash.bashrc && /usr/lib/zeppelin/zeppelin/bin/zeppelin-daemon.sh start"
+su ubuntu -c "source /etc/environment && source /etc/bash.bashrc && /usr/lib/zeppelin/zeppelin/bin/zeppelin-daemon.sh start"
 echo "zeppelin ready" >> /home/ubuntu/deployment.log
 # zeppelin is installed and running
 
