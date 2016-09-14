@@ -19,6 +19,9 @@ function setState() {
     let "state += 1"
 }
 
+function deploymentLog() {
+    echo $1 >> /home/ubuntu/deployment.log
+}
 # state 1
 setState
 
@@ -108,42 +111,28 @@ EOF
 mkdir /home/ubuntu/downloaded
 cd /home/ubuntu/downloaded
 
-# state 2
-setState
-
-wget http://mirror.switch.ch/mirror/apache/dist/hadoop/common/hadoop-2.7.1/hadoop-2.7.1.tar.gz
+$jdkframework$
 
 # state 3
 setState
 
-wget --no-cookies --no-check-certificate --header "Cookie: oraclelicense=accept-securebackup-cookie" "http://download.oracle.com/otn-pub/java/jdk/8u74-b02/jdk-8u74-linux-x64.tar.gz" -O jdk-8-linux-x64.tar.gz
+wget http://mirror.switch.ch/mirror/apache/dist/hadoop/common/hadoop-2.7.1/hadoop-2.7.1.tar.gz
 
-function transferFirstUnpackLater {
-    # state 4
-    setState
+# state 4
+setState
 
-	# copying hadoop & jdk to slaves in a compact form and unpacking them on
-	# the slaves
-	echo "copying hadoop and jdk to slaves" >> /home/ubuntu/deployment.log
-	su ubuntu -c "parallel-scp -h /home/ubuntu/hosts.lst /home/ubuntu/downloaded/{hadoop-2.7.1.tar.gz,jdk-8-linux-x64.tar.gz} /home/ubuntu"
-	echo "unpacking hadoop" >> /home/ubuntu/deployment.log
+# copying hadoop to slaves and unpacking it
+echo "copying hadoop to slaves" >> /home/ubuntu/deployment.log
+su ubuntu -c "parallel-scp -h /home/ubuntu/hosts.lst /home/ubuntu/downloaded/hadoop-2.7.1.tar.gz /home/ubuntu"
+echo "unpacking hadoop" >> /home/ubuntu/deployment.log
 
-    # state 5
-	setState
-	su ubuntu -c "parallel-ssh -t 2000 -h /home/ubuntu/hosts.lst \"tar -xzf /home/ubuntu/hadoop-2.7.1.tar.gz\""
-	echo "unpacking jdk" >> /home/ubuntu/deployment.log
+# state 5
+setState
+su ubuntu -c "parallel-ssh -t 2000 -h /home/ubuntu/hosts.lst \"tar -xzf /home/ubuntu/hadoop-2.7.1.tar.gz\""
 
-    # state 6
-	setState
-	su ubuntu -c "parallel-ssh -t 2000 -h /home/ubuntu/hosts.lst \"tar -xzf /home/ubuntu/jdk-8-linux-x64.tar.gz\""
-	echo "setting up both" >> /home/ubuntu/deployment.log
-	# done with copying/unpacking hadoop/jdk
-}
-
-# here, the script has to decide which function to call:
-# transferFirstUnpackLater or transferUnpackedFiles
-echo "transferring hadoop & jdk to the masters/slaves and unpacking them" >> /home/ubuntu/deployment.log
-transferFirstUnpackLater
+# state 6
+setState
+echo "setting up both" >> /home/ubuntu/deployment.log
 
 # state 7
 setState
@@ -155,9 +144,6 @@ su ubuntu -c "parallel-ssh -h /home/ubuntu/hosts.lst \"sudo mkdir /usr/lib/hadoo
 su ubuntu -c "parallel-ssh -h /home/ubuntu/hosts.lst \"sudo mv /home/ubuntu/hadoop-2.7.1 /usr/lib/hadoop\""
 su ubuntu -c "parallel-ssh -h /home/ubuntu/hosts.lst \"sudo ln -s /usr/lib/hadoop/hadoop-2.7.1 /usr/lib/hadoop/hadoop\""
 su ubuntu -c "parallel-ssh -h /home/ubuntu/hosts.lst \"sudo mv /usr/lib/hadoop/hadoop-2.7.1/etc/hadoop/ /etc/\""
-su ubuntu -c "parallel-ssh -h /home/ubuntu/hosts.lst \"sudo mkdir -p /usr/lib/java\""
-su ubuntu -c "parallel-ssh -h /home/ubuntu/hosts.lst \"sudo mv /home/ubuntu/jdk1.8.0_74/ /usr/lib/java/\""
-su ubuntu -c "parallel-ssh -h /home/ubuntu/hosts.lst \"sudo ln -s /usr/lib/java/jdk1.8.0_74/ /usr/lib/java/jdk\""
 su ubuntu -c "parallel-scp -h /home/ubuntu/hosts.lst /home/ubuntu/hadoopconf/bashrc.suffix /home/ubuntu"
 su ubuntu -c "parallel-ssh -h /home/ubuntu/hosts.lst \"sudo sh -c \\\"cat /home/ubuntu/bashrc.suffix >> /etc/bash.bashrc\\\"\""
 
@@ -279,6 +265,45 @@ su ubuntu -c "jupyter-notebook &"
 echo "jupyter ready" >> /home/ubuntu/deployment.log
 # jupyter is installed and running
 
+
+
+
+
+# install ZooKeeper (needed for Storm)
+cd /home/ubuntu/downloaded
+wget http://mirror.switch.ch/mirror/apache/dist/zookeeper/zookeeper-3.4.9/zookeeper-3.4.9.tar.gz
+su ubuntu -c "parallel-scp -h /home/ubuntu/hosts.lst /home/ubuntu/downloaded/zookeeper-3.4.9.tar.gz /home/ubuntu"
+echo "unpacking hadoop" >> /home/ubuntu/deployment.log
+
+su ubuntu -c "parallel-ssh -t 2000 -h /home/ubuntu/hosts.lst \"tar -xzf /home/ubuntu/zookeeper-3.4.9.tar.gz\""
+# at this point, the config file has to be set and distributed to each machine
+cat - > /home/ubuntu/downloaded/conf/zoo.cfg << 'EOF'
+$zoo_cfg$
+EOF
+su ubuntu -c "parallel-ssh -t 2000 -h /home/ubuntu/hosts.lst \"sudo mkdir /usr/lib/zookeeper && sudo chown ubuntu:ubuntu /usr/lib/zookeeper\""
+su ubuntu -c "parallel-ssh -t 2000 -h /home/ubuntu/hosts.lst \"mv /home/ubuntu/zookeeper-3.4.9 /usr/lib/zookeeper\""
+
+
+
+
+
+# example zookeeper.../conf/zoo.cfg file; for each machine the same (file 'myid' within dataDir directory specifies the individual server number):
+#tickTime=2000
+#dataDir=/var/lib/zookeeper
+#clientPort=2181
+#initLimit=5
+#syncLimit=2
+#server.1=masternode-e45d1fc5-758e-11e6-a3e0-34363b7e7806:2888:3888
+#server.2=slavenode-e45d1fc5-758e-11e6-a3e0-34363b7e7806-1:2888:3888
+
+
+
+
+
+# install Storm
+mkdir /usr/lib/storm
+
+# in the end: starting storm: bin/storm nimbus && bin/storm supervisor && bin/storm ui <- nimbus & ui just on master node
 
 
 

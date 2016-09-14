@@ -30,6 +30,8 @@ import copy
 import os
 import ConfigParser
 
+from frameworkfactory import FrameworkFactory
+
 __author__ = 'balazs'
 
 HEAT_VERSION = '1'
@@ -171,6 +173,31 @@ class Deploy(Task):
 
         self.extras = extras
 
+    def dep_resolve(self, framework, resolved, unresolved):
+        unresolved.append(framework)
+        for edge in FrameworkFactory.get_framework(framework,None,None).get_dependencies().keys():
+            if edge not in resolved:
+                if edge in unresolved:
+                    raise Exception('Circular reference detected: %s -&gt; %s' % (framework, edge))
+                self.dep_resolve(edge, resolved, unresolved)
+        resolved.append(framework)
+        unresolved.remove(framework)
+
+    def list_contains_fw(self, fwList, fwName):
+        for fw in iter(fwList):
+            if fw.get_name()==fwName:
+                return True
+        return False
+
+    def get_dep(self, fw, neededList):
+        dependencyKeys = fw.get_dependencies().keys()
+
+        for newFwName in iter(dependencyKeys):
+            if not self.list_contains_fw(neededList, newFwName):
+                newFw = FrameworkFactory.get_framework(newFwName,None,None)
+                neededList.append(newFw)
+                self.get_dep(newFw, neededList)
+
     def run(self):
         # TODO: bad practise
         global so_instances
@@ -185,6 +212,20 @@ class Deploy(Task):
                     }
         LOG.debug(json.dumps(infoDict))
         self.entity.attributes['mcn.service.state'] = 'deploy'
+
+        # set attributes member variable
+        self.attributes = self.entity.attributes
+
+        # the rootFolder is needed in order to load the config files
+        self.rootFolder = CONFIG.get('disco','root_folder')
+        if self.rootFolder=="":
+            # if no rootFolder has been provided, take the path it's located
+            # within the Docker image
+            self.rootFolder = "data/"
+
+        # setup parser for config file
+        self.config = ConfigParser.RawConfigParser()
+        self.config.read(os.path.join(self.rootFolder,'defaultSettings.cfg'))
 
         # retrieve the Heat template which will setup the cluster according to the specifications within the given http attributes
         heatTemplate = self.__get_heat_template(attributes=self.entity.attributes)
@@ -205,7 +246,16 @@ class Deploy(Task):
             }
             LOG.debug('the stack\'s name is '+body['stack_name'])
 
+            deploymentCount = 1
+            try:
+                deploymentCount = int(self.getAttr('icclab.haas.cluster.deploymentcount'))
+            except:
+                pass
+
+            for i in range(0, deploymentCount):
+                print i
             # here is where the actual SO deployment happens
+            #TODO
             tmp = heatClient.stacks.create(**body)
 
             # the return value will be saved locally so it can be retrieved for future operations
@@ -214,34 +264,28 @@ class Deploy(Task):
 
         return self.entity, self.extras
 
+
+    # this function will return the first of following values in the order
+    # of occurrence:
+    #   - given by the user during instantiation
+    #   - set as a default value in the config file
+    #   - an empty string
+    def getAttr(self, attrName):
+        if(attrName in self.attributes):
+            return self.attributes[attrName]
+        else:
+            try:
+                retVal = self.config.get('cluster',attrName)
+                return retVal
+            except:
+                return ""
+
+    def get_master_name(self):
+        return self.master_name
+
     def __get_heat_template(self, attributes):
         randomstring = "-"+str(uuid.uuid1())
 
-        # this function will return the first of following values in the order
-        # of occurrence:
-        #   - given by the user during instantiation
-        #   - set as a default value in the config file
-        #   - an empty string
-        def getAttr(attrName):
-            if(attrName in attributes):
-                return attributes[attrName]
-            else:
-                try:
-                    retVal = config.get('cluster',attrName)
-                    return retVal
-                except:
-                    return ""
-
-        # the rootFolder is needed in order to load the config files
-        self.rootFolder = CONFIG.get('disco','root_folder')
-        if self.rootFolder=="":
-            # if no rootFolder has been provided, take the path it's located
-            # within the Docker image
-            self.rootFolder = "data/"
-
-        # setup parser for config file
-        config = ConfigParser.RawConfigParser()
-        config.read(os.path.join(self.rootFolder,'defaultSettings.cfg'))
 
         LOG.info("deploying stack...")
 
@@ -251,35 +295,53 @@ class Deploy(Task):
         # conversion, they have to be set within a try-except block.
         slaveCount = 1
         try:
-            slaveCount = int(getAttr('icclab.haas.slave.number'))
+            slaveCount = int(self.getAttr('icclab.haas.slave.number'))
         except:
             pass
-        masterImage = getAttr('icclab.haas.master.image')
-        slaveImage = getAttr('icclab.haas.slave.image')
-        masterFlavor = getAttr('icclab.haas.master.flavor')
-        slaveFlavor = getAttr('icclab.haas.slave.flavor')
+        masterImage = self.getAttr('icclab.haas.master.image')
+        slaveImage = self.getAttr('icclab.haas.slave.image')
+        masterFlavor = self.getAttr('icclab.haas.master.flavor')
+        slaveFlavor = self.getAttr('icclab.haas.slave.flavor')
         slaveOnMaster = True #getAttr('icclab.haas.master.slaveonmaster').lower() in ['true', '1']
-        SSHPublicKeyName = getAttr('icclab.haas.master.sshkeyname')
-        SSHMasterPublicKey = getAttr('icclab.haas.master.publickey')
-        withFloatingIP = getAttr('icclab.haas.master.withfloatingip').lower() in ['true','1']
-        master_name = getAttr('icclab.haas.master.name')+randomstring
-        slave_name = getAttr('icclab.haas.slave.name')+randomstring+"-"
-        subnet_cidr = getAttr('icclab.haas.network.subnet.cidr')
-        subnet_gw_ip = getAttr('icclab.haas.network.gw.ip')
-        subnet_allocation_pool_start = getAttr('icclab.haas.network.subnet.allocpool.start')
-        subnet_allocation_pool_end = getAttr('icclab.haas.network.subnet.allocpool.end')
-        subnet_dns_servers = getAttr('icclab.haas.network.dnsservers')
-        image_id = getAttr('icclab.haas.master.imageid')
-        floatingIpId = getAttr('icclab.haas.master.attachfloatingipwithid')
+        SSHPublicKeyName = self.getAttr('icclab.haas.master.sshkeyname')
+        SSHMasterPublicKey = self.getAttr('icclab.haas.master.publickey')
+        withFloatingIP = self.getAttr('icclab.haas.master.withfloatingip').lower() in ['true','1']
+        self.master_name = self.getAttr('icclab.haas.master.name')+randomstring
+        slave_name = self.getAttr('icclab.haas.slave.name')+randomstring+"-"
+        subnet_cidr = self.getAttr('icclab.haas.network.subnet.cidr')
+        subnet_gw_ip = self.getAttr('icclab.haas.network.gw.ip')
+        subnet_allocation_pool_start = self.getAttr('icclab.haas.network.subnet.allocpool.start')
+        subnet_allocation_pool_end = self.getAttr('icclab.haas.network.subnet.allocpool.end')
+        subnet_dns_servers = self.getAttr('icclab.haas.network.dnsservers')
+        image_id = self.getAttr('icclab.haas.master.imageid')
+        floatingIpId = self.getAttr('icclab.haas.master.attachfloatingipwithid')
 
-        externalNetwork = getAttr('icclab.haas.network.external')
+        externalNetwork = self.getAttr('icclab.haas.network.external')
 
-        noDeployment = getAttr('icclab.haas.debug.donotdeploy').lower() in ['true','1']
-        saveToLocalPath = getAttr('icclab.haas.debug.savetemplatetolocalpath')
+        noDeployment = self.getAttr('icclab.haas.debug.donotdeploy').lower() in ['true','1']
+        saveToLocalPath = self.getAttr('icclab.haas.debug.savetemplatetolocalpath')
 
         diskId = 'virtio-'+image_id[0:20]
 
         # masterSSHKeyEntry = ''
+        # self.frameworkList = []
+        # newFW = FrameworkFactory.get_framework("jdk",self,None)
+        # self.frameworkList.append(newFW)
+        # jdkframeworkbash = newFW.get_bash()
+
+        resolved = []
+        neededFW = []
+        jdkFW = FrameworkFactory.get_framework("jdk",self,None)
+        neededFW.append(jdkFW)
+        self.dep_resolve("jdk", resolved, [])
+
+        frameworkList = []
+        for framework in iter(resolved):
+            frameworkList.append(FrameworkFactory.get_framework(framework,self,None))
+
+        jdkframeworkbash = ''
+        for framework in iter(frameworkList):
+            jdkframeworkbash += framework.get_bash()
 
         def getFileContent(fileName):
             f = open(os.path.join(self.rootFolder, fileName))
@@ -308,7 +370,12 @@ class Deploy(Task):
         paramsSlave = ""
         slavesFile = ""
         hostsListFile = ""
+        zooCfgFile = "tickTime=2000\ndataDir=/var/lib/zookeeper\nclientPort=2181\ninitLimit=5\nsyncLimit=2\n"
 
+        addToZoo = 0
+        if slaveOnMaster:
+            addToZoo = 1
+            zooCfgFile += "server.1"+self.master_name+":2888:3888\n"
 
         slaveTemplate = slaveTemplate.replace("$master.id_rsa.pub$",master_id_rsa_pub)
         for i in xrange(1,slaveCount+1):
@@ -318,6 +385,7 @@ class Deploy(Task):
             paramsSlave += "            $slave"+str(i)+"address$: { get_attr: [hadoop_slave_"+str(i)+", first_address] }\n"
             slavesFile += slave_name+str(i)+"\n"
             hostsListFile += "$slave"+str(i)+"address$\n"
+            zooCfgFile += "server."+str(i+addToZoo)+"$slave"+str(i)+":2888:3888\n"
 
         # In the following section, the master's public SSH key will be setup.
         # This is done the following way: if no key name was provided for an
@@ -346,7 +414,7 @@ class Deploy(Task):
         # if master has to act as a slave as well, set variable accordingly
         masterasslave = ""
         if slaveOnMaster==True:
-            masterasslave = master_name+"\n"
+            masterasslave = self.master_name+"\n"
 
         # setup bash script for master (write replace{r,e}s into dictionary and
         # replace them one by one
@@ -366,7 +434,8 @@ class Deploy(Task):
                         "$disk_id$": diskId,
                         "$jupyter_notebook_config.py$": jupyter_notebook_config_py,
                         "$zeppelin_env_sh$": zeppelin_env_sh,
-                        "$interpreter_json$": interpreter_json
+                        "$interpreter_json$": interpreter_json,
+                        "$jdkframework$": jdkframeworkbash
                         }
         for key, value in replaceDict.iteritems():
             masterBash = masterBash.replace(key, value)
@@ -413,7 +482,7 @@ class Deploy(Task):
                        "$slaves$": slaves,
                        "$master_image$": masterImage,
                        "$slave_image$": slaveImage,
-                       "$masternode$": master_name,
+                       "$masternode$": self.master_name,
                        "$slavenode$": slave_name,
                        "$master_flavor$": masterFlavor,
                        "$slave_flavor$": slaveFlavor,
