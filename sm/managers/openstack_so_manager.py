@@ -175,11 +175,11 @@ class Deploy(Task):
 
     def dep_resolve(self, framework, resolved, unresolved):
         unresolved.append(framework)
-        for edge in FrameworkFactory.get_framework(framework,None,None).get_dependencies().keys():
-            if edge not in resolved:
-                if edge in unresolved:
+        for edge in framework.get_dependencies().keys():
+            if not self.list_contains_fw(resolved, edge):
+                if self.list_contains_fw(unresolved, edge):
                     raise Exception('Circular reference detected: %s -&gt; %s' % (framework, edge))
-                self.dep_resolve(edge, resolved, unresolved)
+                self.dep_resolve(FrameworkFactory.get_framework(edge,self,self.attributes), resolved, unresolved)
         resolved.append(framework)
         unresolved.remove(framework)
 
@@ -333,14 +333,10 @@ class Deploy(Task):
         neededFW = []
         jdkFW = FrameworkFactory.get_framework("jdk",self,None)
         neededFW.append(jdkFW)
-        self.dep_resolve("jdk", resolved, [])
-
-        frameworkList = []
-        for framework in iter(resolved):
-            frameworkList.append(FrameworkFactory.get_framework(framework,self,None))
+        self.dep_resolve(FrameworkFactory.get_framework("jdk",self,self.attributes), resolved, [])
 
         jdkframeworkbash = ''
-        for framework in iter(frameworkList):
+        for framework in iter(resolved):
             jdkframeworkbash += framework.get_bash()
 
         def getFileContent(fileName):
@@ -362,7 +358,7 @@ class Deploy(Task):
         hadoop_env_sh = getFileContent("hadoop-env.sh")
         jupyter_notebook_config_py = getFileContent("jupyter_notebook_config.py")
         zeppelin_env_sh = getFileContent("zeppelin-env.sh")
-        interpreter_json = getFileContent("interpreter.json")
+        # interpreter_json = getFileContent("interpreter.json")
 
         slaves = ""
         hostFileContent = ""
@@ -434,7 +430,7 @@ class Deploy(Task):
                         "$disk_id$": diskId,
                         "$jupyter_notebook_config.py$": jupyter_notebook_config_py,
                         "$zeppelin_env_sh$": zeppelin_env_sh,
-                        "$interpreter_json$": interpreter_json,
+                        # "$interpreter_json$": interpreter_json,
                         "$jdkframework$": jdkframeworkbash
                         }
         for key, value in replaceDict.iteritems():
