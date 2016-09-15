@@ -30,29 +30,25 @@ EOF
 cd /home/ubuntu/downloaded
 wget http://mirror.switch.ch/mirror/apache/dist/hadoop/common/hadoop-2.7.1/hadoop-2.7.1.tar.gz
 
-# copying hadoop & jdk to slaves in a compact form and unpacking them on
+# copying hadoop to slaves in a compact form and unpacking it on
 # the slaves
-echo "copying hadoop and jdk to slaves" >> /home/ubuntu/deployment.log
+deploymentLog "copying hadoop to slaves"
 su ubuntu -c "parallel-scp -h /home/ubuntu/hosts.lst /home/ubuntu/downloaded/hadoop-2.7.1.tar.gz /home/ubuntu"
-echo "unpacking hadoop" >> /home/ubuntu/deployment.log
+deploymentLog "unpacking hadoop"
 
 setState
 su ubuntu -c "parallel-ssh -t 2000 -h /home/ubuntu/hosts.lst \"tar -xzf /home/ubuntu/hadoop-2.7.1.tar.gz\""
 
 
 setState
-echo "setting up both" >> /home/ubuntu/deployment.log
 
-echo "setting up hadoop & jdk" >> /home/ubuntu/deployment.log
+deploymentLog "setting up hadoop"
 # copy the SSH files to all slaves
 su ubuntu -c "parallel-scp -h ~/hosts.lst ~/.ssh/{config,id_rsa,id_rsa.pub} ~/.ssh"
 su ubuntu -c "parallel-ssh -h /home/ubuntu/hosts.lst \"sudo mkdir /usr/lib/hadoop\""
 su ubuntu -c "parallel-ssh -h /home/ubuntu/hosts.lst \"sudo mv /home/ubuntu/hadoop-2.7.1 /usr/lib/hadoop\""
 su ubuntu -c "parallel-ssh -h /home/ubuntu/hosts.lst \"sudo ln -s /usr/lib/hadoop/hadoop-2.7.1 /usr/lib/hadoop/hadoop\""
 su ubuntu -c "parallel-ssh -h /home/ubuntu/hosts.lst \"sudo mv /usr/lib/hadoop/hadoop-2.7.1/etc/hadoop/ /etc/\""
-su ubuntu -c "parallel-ssh -h /home/ubuntu/hosts.lst \"sudo mkdir -p /usr/lib/java\""
-su ubuntu -c "parallel-ssh -h /home/ubuntu/hosts.lst \"sudo mv /home/ubuntu/jdk1.8.0_74/ /usr/lib/java/\""
-su ubuntu -c "parallel-ssh -h /home/ubuntu/hosts.lst \"sudo ln -s /usr/lib/java/jdk1.8.0_74/ /usr/lib/java/jdk\""
 su ubuntu -c "parallel-scp -h /home/ubuntu/hosts.lst /home/ubuntu/hadoopconf/bashrc.suffix /home/ubuntu"
 su ubuntu -c "parallel-ssh -h /home/ubuntu/hosts.lst \"sudo sh -c \\\"cat /home/ubuntu/bashrc.suffix >> /etc/bash.bashrc\\\"\""
 
@@ -64,7 +60,7 @@ su ubuntu -c "parallel-ssh -h /home/ubuntu/hosts.lst \"sudo chown -R ubuntu:ubun
 
 # the file has to be copied into the user directory as ubuntu doesn't have
 # permissions to write into /etc/hadoop
-echo "copying config files from master to slave..." >> /home/ubuntu/deployment.log
+deploymentLog "copying config files from master to slave..."
 su ubuntu -c "parallel-scp -h /home/ubuntu/hosts.lst /home/ubuntu/hadoopconf/core-site.xml /home/ubuntu"
 # move file to its final location (/etc/hadoop)
 su ubuntu -c "parallel-ssh -h /home/ubuntu/hosts.lst \"sudo mv -f /home/ubuntu/core-site.xml /etc/hadoop\""
@@ -91,6 +87,6 @@ su ubuntu -c "/usr/lib/hadoop/hadoop/sbin/start-yarn.sh"
 #git clone https://github.com/Pentadactylus/yarn_jars.git
 #echo "CLASSPATH=/home/ubuntu/yarn_jars/hadoop-client-1.2.1.jar:/home/ubuntu/yarn_jars/commons-cli-1.2.jar:/home/ubuntu/yarn_jars/hadoop-core-1.2.1.jar" >> /etc/bash.bashrc
 
-echo "hadoop cluster ready" >> /home/ubuntu/deployment.log
+deploymentLog "hadoop cluster ready"
 
 

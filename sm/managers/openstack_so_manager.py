@@ -377,11 +377,6 @@ class Deploy(Task):
         masterBash = self.getFileContent("master_bash.sh")
         master_id_rsa = self.getFileContent("master.id_rsa").replace("\n","\\n")
         master_id_rsa_pub = self.getFileContent("master.id_rsa.pub").replace("\n","")
-        yarn_site_xml = self.getFileContent("yarn-site.xml")
-        core_site_xml = self.getFileContent("core-site.xml")
-        mapred_site_xml = self.getFileContent("mapred-site.xml")
-        hdfs_site_xml = self.getFileContent("hdfs-site.xml")
-        hadoop_env_sh = self.getFileContent("hadoop-env.sh")
         jupyter_notebook_config_py = self.getFileContent("jupyter_notebook_config.py")
         zeppelin_env_sh = self.getFileContent("zeppelin-env.sh")
         # interpreter_json = getFileContent("interpreter.json")
@@ -440,27 +435,23 @@ class Deploy(Task):
 
         # setup bash script for master (write replace{r,e}s into dictionary and
         # replace them one by one
-        replaceDict = { "$shellframeworkbash$": shellframeworkbash,
-                        "$master.id_rsa$": master_id_rsa,
-                        "$master.id_rsa.pub$": master_id_rsa_pub,
-                        "$yarn-site.xml$": yarn_site_xml,
-                        "$core-site.xml$": core_site_xml,
-                        "$mapred-site.xml$": mapred_site_xml,
-                        "$hdfs-site.xml$": hdfs_site_xml,
-                        "$hadoop-env.sh$": hadoop_env_sh,
-                        "$masternodeasslave$": masterasslave,
-                        "$slavesfile$": slavesFile,
-                        "$hostsfilecontent$": hostFileContent,
-                        "$forloopslaves$": forLoopSlaves,
-                        "$for_loop_slaves$": hostsListFile,
-                        "$insert_master_pub_key$": insertMasterPublicKey,
-                        "$disk_id$": diskId,
-                        "$jupyter_notebook_config.py$": jupyter_notebook_config_py,
-                        "$zeppelin_env_sh$": zeppelin_env_sh,
+        #TODO: bugfix: as dictionary is not ordered, created a list with dict-s - should be handled differently
+        replaceDict = [ {"$shellframeworkbash$": shellframeworkbash},
+                        {"$master.id_rsa$": master_id_rsa},
+                        {"$master.id_rsa.pub$": master_id_rsa_pub},
+                        {"$masternodeasslave$": masterasslave},
+                        {"$slavesfile$": slavesFile},
+                        {"$hostsfilecontent$": hostFileContent},
+                        {"$forloopslaves$": forLoopSlaves},
+                        {"$for_loop_slaves$": hostsListFile},
+                        {"$insert_master_pub_key$": insertMasterPublicKey},
+                        {"$disk_id$": diskId},
+                        {"$jupyter_notebook_config.py$": jupyter_notebook_config_py},
+                        {"$zeppelin_env_sh$": zeppelin_env_sh},
                         # "$interpreter_json$": interpreter_json,
-                        }
-        for key, value in replaceDict.iteritems():
-            masterBash = masterBash.replace(key, value)
+                        ]
+        for item in replaceDict:
+            masterBash = masterBash.replace(item.keys()[0], item.values()[0])
 
         # add some spaces in front of each line because the bash script has to
         # be indented within the Heat template
