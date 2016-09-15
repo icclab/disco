@@ -175,11 +175,15 @@ class Deploy(Task):
 
     def dep_resolve(self, framework, resolved, unresolved):
         unresolved.append(framework)
-        for edge in framework.get_dependencies().keys():
-            if not self.list_contains_fw(resolved, edge):
-                if self.list_contains_fw(unresolved, edge):
-                    raise Exception('Circular reference detected: %s -&gt; %s' % (framework, edge))
-                self.dep_resolve(FrameworkFactory.get_framework(edge,self,self.attributes), resolved, unresolved)
+        for fw, deps in framework.get_dependencies().iteritems():
+            if not self.list_contains_fw(resolved, fw):
+                if self.list_contains_fw(unresolved, fw):
+                    raise Exception('Circular reference detected: %s -&gt; %s' % (framework, fw))
+                self.dep_resolve(FrameworkFactory.get_framework(fw,self,deps), resolved, unresolved)
+            elif len(deps) is not 0:
+                # here, the new requirements have to be inserted into existing framework instance
+                # if no new attributes are to be inserted, no call necessary as the framework will be installed anyway
+                self.add_attributes_to_fw(deps, fw, resolved)
         resolved.append(framework)
         unresolved.remove(framework)
 
@@ -189,6 +193,12 @@ class Deploy(Task):
                 return True
         return False
 
+    def add_attributes_to_fw(self, attrs, fwname, list):
+        for fw in iter(list):
+            if fw.get_name()==fwname:
+                fw.add_required_attributes(attrs)
+        pass
+
     def get_dep(self, fw, neededList):
         dependencyKeys = fw.get_dependencies().keys()
 
@@ -197,6 +207,20 @@ class Deploy(Task):
                 newFw = FrameworkFactory.get_framework(newFwName,None,None)
                 neededList.append(newFw)
                 self.get_dep(newFw, neededList)
+
+    # inserts variable values into framework to be used
+    def insert_variables_into_fw(self, fw, fwList):
+        # iterate over each framework which current framework depends on
+        for fwname, fwattrs in fw.get_dependencies().items():
+            for framework in fwList:
+                # this framework's values are needed
+                if framework.get_name()==fwname:
+                    # the framework's entry will be updated with every value the respective framework provides
+                    #TODO: should only be done with the required values
+                    # fw.get_dependencies().pop(framework.get_name())
+                    curDict = fw.get_dependencies()
+                    curDict.update(framework.get_variables())
+            pass
 
     def run(self):
         # TODO: bad practise
@@ -337,11 +361,12 @@ class Deploy(Task):
 
         resolved = []
         shellFW = FrameworkFactory.get_framework("shell",self,None)
-        shellFW.set_dependencies({"jdk":{},"hadoop":{},"spark":{}})
+        shellFW.set_dependencies({"jdk":{"java_home":None},"hadoop":{},"spark":{}})
         self.dep_resolve(shellFW, resolved, [])
 
         shellframeworkbash = ''
         for framework in iter(resolved):
+            self.insert_variables_into_fw(framework, resolved)
             shellframeworkbash += framework.get_bash()
 
 
