@@ -3,6 +3,7 @@ from framework import Framework
 class JDKFramework(Framework):
     def __init__(self, deployClass, attributes):
         super(JDKFramework,self).__init__(deployClass, attributes)
+        self.variables = {"java_home":"/usr/lib/java/jdk"}
 
     def get_bash(self):
         return '# state 2\n\
@@ -26,5 +27,6 @@ su ubuntu -c "parallel-ssh -h /home/ubuntu/hosts.lst \\"sudo ln -s /usr/lib/java
         return "jdk"
 
     def get_dependencies(self):
-        return {"environment": {"parallel_scp":None,"parallel_ssh":None,"hosts_lst":None,"setstate":None,"deployment_log":None}}
+        self.dependencies = {"environment": {"parallel_scp":None,"parallel_ssh":None,"hosts_lst":None,"setstate":None,"deployment_log":None}}
+        return self.dependencies
 

@@ -12,5 +12,5 @@ class SparkFramework(Framework):
         return "spark"
 
     def get_dependencies(self):
-        return {"jdk":{},"hadoop":{}}
-
+        self.dependencies = {"jdk":{},"hadoop":{}}
+        return self.dependencies

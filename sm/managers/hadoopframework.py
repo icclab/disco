@@ -12,5 +12,5 @@ class HadoopFramework(Framework):
         return "hadoop"
 
     def get_dependencies(self):
-        return {"jdk": {}}
-
+        self.dependencies = {"jdk": {}}
+        return self.dependencies

@@ -11,5 +11,5 @@ class EnvironmentFramework(Framework):
         return "environment"
 
     def get_dependencies(self):
-        return {"cluster": {"username","master_user_dir","slave_user_dir"}}
-
+        self.dependencies = {"cluster": {"username","master_user_dir","slave_user_dir"}}
+        return self.dependencies
