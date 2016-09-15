@@ -283,6 +283,12 @@ class Deploy(Task):
     def get_master_name(self):
         return self.master_name
 
+    def getFileContent(self,fileName):
+        f = open(os.path.join(self.rootFolder, fileName))
+        retVal = f.read()
+        f.close()
+        return retVal
+
     def __get_heat_template(self, attributes):
         randomstring = "-"+str(uuid.uuid1())
 
@@ -330,34 +336,29 @@ class Deploy(Task):
         # jdkframeworkbash = newFW.get_bash()
 
         resolved = []
-        neededFW = []
-        jdkFW = FrameworkFactory.get_framework("jdk",self,None)
-        neededFW.append(jdkFW)
-        self.dep_resolve(FrameworkFactory.get_framework("jdk",self,self.attributes), resolved, [])
+        shellFW = FrameworkFactory.get_framework("shell",self,None)
+        shellFW.set_dependencies({"jdk":{},"hadoop":{},"spark":{}})
+        self.dep_resolve(shellFW, resolved, [])
 
-        jdkframeworkbash = ''
+        shellframeworkbash = ''
         for framework in iter(resolved):
-            jdkframeworkbash += framework.get_bash()
+            shellframeworkbash += framework.get_bash()
 
-        def getFileContent(fileName):
-            f = open(os.path.join(self.rootFolder, fileName))
-            retVal = f.read()
-            f.close()
-            return retVal
+
 
         # read all the necessary files for creating the Heat template
-        clusterTemplate = getFileContent("cluster.yaml");
-        slaveTemplate = getFileContent("slave.yaml")
-        masterBash = getFileContent("master_bash.sh")
-        master_id_rsa = getFileContent("master.id_rsa").replace("\n","\\n")
-        master_id_rsa_pub = getFileContent("master.id_rsa.pub").replace("\n","")
-        yarn_site_xml = getFileContent("yarn-site.xml")
-        core_site_xml = getFileContent("core-site.xml")
-        mapred_site_xml = getFileContent("mapred-site.xml")
-        hdfs_site_xml = getFileContent("hdfs-site.xml")
-        hadoop_env_sh = getFileContent("hadoop-env.sh")
-        jupyter_notebook_config_py = getFileContent("jupyter_notebook_config.py")
-        zeppelin_env_sh = getFileContent("zeppelin-env.sh")
+        clusterTemplate = self.getFileContent("cluster.yaml");
+        slaveTemplate = self.getFileContent("slave.yaml")
+        masterBash = self.getFileContent("master_bash.sh")
+        master_id_rsa = self.getFileContent("master.id_rsa").replace("\n","\\n")
+        master_id_rsa_pub = self.getFileContent("master.id_rsa.pub").replace("\n","")
+        yarn_site_xml = self.getFileContent("yarn-site.xml")
+        core_site_xml = self.getFileContent("core-site.xml")
+        mapred_site_xml = self.getFileContent("mapred-site.xml")
+        hdfs_site_xml = self.getFileContent("hdfs-site.xml")
+        hadoop_env_sh = self.getFileContent("hadoop-env.sh")
+        jupyter_notebook_config_py = self.getFileContent("jupyter_notebook_config.py")
+        zeppelin_env_sh = self.getFileContent("zeppelin-env.sh")
         # interpreter_json = getFileContent("interpreter.json")
 
         slaves = ""
@@ -414,7 +415,8 @@ class Deploy(Task):
 
         # setup bash script for master (write replace{r,e}s into dictionary and
         # replace them one by one
-        replaceDict = { "$master.id_rsa$": master_id_rsa,
+        replaceDict = { "$shellframeworkbash$": shellframeworkbash,
+                        "$master.id_rsa$": master_id_rsa,
                         "$master.id_rsa.pub$": master_id_rsa_pub,
                         "$yarn-site.xml$": yarn_site_xml,
                         "$core-site.xml$": core_site_xml,
@@ -431,7 +433,6 @@ class Deploy(Task):
                         "$jupyter_notebook_config.py$": jupyter_notebook_config_py,
                         "$zeppelin_env_sh$": zeppelin_env_sh,
                         # "$interpreter_json$": interpreter_json,
-                        "$jdkframework$": jdkframeworkbash
                         }
         for key, value in replaceDict.iteritems():
             masterBash = masterBash.replace(key, value)
