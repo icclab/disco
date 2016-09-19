@@ -218,8 +218,12 @@ class Deploy(Task):
                     # the framework's entry will be updated with every value the respective framework provides
                     #TODO: should only be done with the required values
                     # fw.get_dependencies().pop(framework.get_name())
-                    curDict = fw.get_dependencies()
-                    curDict.update(framework.get_variables())
+                    curDict = fw.get_dependencies()[fwname]
+                    values = framework.get_variables()[fwname]
+                    for key, val in curDict.items():
+                        if key in values.keys():
+                            curDict[key] = values[key]
+                    # curDict.update()
             pass
 
     def run(self):
@@ -351,18 +355,29 @@ class Deploy(Task):
         noDeployment = self.getAttr('icclab.haas.debug.donotdeploy').lower() in ['true','1']
         saveToLocalPath = self.getAttr('icclab.haas.debug.savetemplatetolocalpath')
 
-        diskId = 'virtio-'+image_id[0:20]
+        frameworks = {}
+        for key,val in self.attributes.iteritems():
+            split = key.split(".")
+            if split[0]=="icclab" and split[1]=="disco" and split[2]=="frameworks":
+                print "framework:"+split[3]+", property "+split[4]+" is "+val
+                if not frameworks.has_key(split[3]):
+                    frameworks[split[3]] = {}
+                frameworks[split[3]][split[4]] = val
 
-        # masterSSHKeyEntry = ''
-        # self.frameworkList = []
-        # newFW = FrameworkFactory.get_framework("jdk",self,None)
-        # self.frameworkList.append(newFW)
-        # jdkframeworkbash = newFW.get_bash()
+        dependencies = {}
+
+        for item in iter(frameworks.keys()):
+            if frameworks[item]['included']=="True":
+                dependencies[item] = frameworks[item]
 
         resolved = []
         shellFW = FrameworkFactory.get_framework("shell",self,None)
-        shellFW.set_dependencies({"jdk":{"java_home":None},"hadoop":{},"spark":{}})
+        # the dependencies are to be filled with parameter values from the HTTP request
+        shellFW.set_dependencies(dependencies)
         self.dep_resolve(shellFW, resolved, [])
+
+        clusterFw = resolved[0]
+        clusterFw.set_variables({"master_name": self.master_name, "slave_name": slave_name, "slave_count": slaveCount})
 
         shellframeworkbash = ''
         for framework in iter(resolved):
@@ -439,13 +454,12 @@ class Deploy(Task):
         replaceDict = [ {"$shellframeworkbash$": shellframeworkbash},
                         {"$master.id_rsa$": master_id_rsa},
                         {"$master.id_rsa.pub$": master_id_rsa_pub},
-                        {"$masternodeasslave$": masterasslave},
-                        {"$slavesfile$": slavesFile},
+                        # {"$masternodeasslave$": masterasslave},
+                        # {"$slavesfile$": slavesFile},
                         {"$hostsfilecontent$": hostFileContent},
                         {"$forloopslaves$": forLoopSlaves},
                         {"$for_loop_slaves$": hostsListFile},
                         {"$insert_master_pub_key$": insertMasterPublicKey},
-                        {"$disk_id$": diskId},
                         {"$jupyter_notebook_config.py$": jupyter_notebook_config_py},
                         {"$zeppelin_env_sh$": zeppelin_env_sh},
                         # "$interpreter_json$": interpreter_json,
