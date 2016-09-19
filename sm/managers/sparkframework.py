@@ -3,6 +3,7 @@ from framework import Framework
 class SparkFramework(Framework):
     def __init__(self, deployClass, attributes):
         super(SparkFramework,self).__init__(deployClass, attributes)
+        self.dependencies = {"jdk":{},"hadoop":{}}
 
     def get_bash(self):
         # for avoiding all escaping problems, the Spark shell script has been outsourced to its own file
@@ -12,5 +13,4 @@ class SparkFramework(Framework):
         return "spark"
 
     def get_dependencies(self):
-        self.dependencies = {"jdk":{},"hadoop":{}}
         return self.dependencies
