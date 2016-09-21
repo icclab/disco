@@ -5,7 +5,7 @@ class HadoopFramework(Framework):
     def __init__(self, deployClass, attributes):
         super(HadoopFramework,self).__init__(deployClass, attributes)
         self.dependencies = {"jdk": {},"cluster":{"master_name":{},"slave_count":{},"slave_name":{}}}
-        self.variables = {"slaveonmaster": True}
+        self.variables = {"slaveonmaster": "True"}
 
     def get_bash(self):
         returnValue = self.deployClass.getFileContent("hadoopbash.sh")

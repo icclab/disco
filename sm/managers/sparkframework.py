@@ -5,6 +5,7 @@ class SparkFramework(Framework):
     def __init__(self, deployClass, attributes):
         super(SparkFramework,self).__init__(deployClass, attributes)
         self.dependencies = {"jdk":{},"hadoop":{},"cluster":{"master_name":{},"slave_count":{},"slave_name":{}}}
+        self.variables = {"slaveonmaster": "True"}
 
     def get_bash(self):
         # for avoiding all escaping problems, the Spark shell script has been outsourced to its own file
