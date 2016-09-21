@@ -5,7 +5,7 @@ class HadoopFramework(Framework):
     def __init__(self, deployClass, attributes):
         super(HadoopFramework,self).__init__(deployClass, attributes)
         self.dependencies = {"jdk": {},"cluster":{"master_name":{},"slave_count":{},"slave_name":{}}}
-        self.variables = {"hadoop": {"slaveonmaster": True}}
+        self.variables = {"slaveonmaster": True}
 
     def get_bash(self):
         returnValue = self.deployClass.getFileContent("hadoopbash.sh")
@@ -26,7 +26,7 @@ class HadoopFramework(Framework):
             returnValue = returnValue.replace(key, value)
         returnValue = returnValue.replace( '$slavesfile$', self.get_slavesfile())
         masterreplacement = ''
-        if self.variables["hadoop"]["slaveonmaster"]:
+        if self.variables["slaveonmaster"]:
             masterreplacement = self.dependencies['cluster']['master_name']+"\n"
         returnValue = returnValue.replace( '$masternodeasslave$',masterreplacement)
         returnValue = returnValue.replace( '$masternode$', self.dependencies['cluster']['master_name'])
@@ -43,6 +43,7 @@ class HadoopFramework(Framework):
         except:
             LOG.error("either slave count or slave name not in dependencies")
         return slavesfile
+
     def get_name(self):
         return "hadoop"
 
