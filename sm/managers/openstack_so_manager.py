@@ -377,7 +377,22 @@ class Deploy(Task):
         self.dep_resolve(shellFW, resolved, [])
 
         clusterFw = resolved[0]
-        clusterFw.set_variables({"master_name": self.master_name, "slave_name": slave_name, "slave_count": slaveCount})
+        clusterFw.set_variable({"master_name": self.master_name, "slave_name": slave_name, "slave_count": slaveCount})
+
+        def getFrameworkWithName(fwName):
+            for framework in iter(resolved):
+                if framework.get_name()==fwName:
+                    return framework
+            return None
+
+        for key,val in self.attributes.iteritems():
+            split = key.split(".")
+            if split[2] == "frameworks":
+                print "framework:"+split[3]+", property "+split[4]+" is "+val
+                framework = getFrameworkWithName(split[3])
+                if framework is not None:
+                    framework.set_variable({split[4]: val})
+
 
         shellframeworkbash = ''
         for framework in iter(resolved):
