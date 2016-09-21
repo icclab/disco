@@ -1,3 +1,12 @@
+# installing prerequisites for Zeppelin
+echo "installing some requisites for Zeppelin" >> /home/ubuntu/deployment.log
+apt-get install -y python3-tk python3-numpy python3-matplotlib xserver-xorg
+rm /usr/bin/python
+# ln -s /usr/bin/python3 /usr/bin/python
+X &
+echo "DISPLAY=:0.0" >> /etc/environment
+#
+
 # now, zeppelin should be installed
 echo "now, installing zeppelin" >> /home/ubuntu/deployment.log
 mkdir /usr/lib/zeppelin
