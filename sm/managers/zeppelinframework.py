@@ -6,7 +6,12 @@ class ZeppelinFramework(Framework):
         self.dependencies = {"spark":{}}
 
     def get_bash(self):
-        return self.deployClass.getFileContent("zeppelinbash.sh")
+        zeppelin_env_sh = self.deployClass.getFileContent("zeppelin-env.sh")
+
+        returnValue = self.deployClass.getFileContent("zeppelinbash.sh")
+        returnValue = returnValue.replace("$zeppelin_env_sh$", zeppelin_env_sh)
+
+        return returnValue
 
     def get_name(self):
         return "zeppelin"
