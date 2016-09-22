@@ -6,6 +6,7 @@ from shellframework import ShellFramework
 from hadoopframework import HadoopFramework
 from sparkframework import SparkFramework
 from zeppelinframework import ZeppelinFramework
+from jupyterframework import JupyterFramework
 
 class FrameworkFactory:
     @staticmethod
@@ -32,4 +33,7 @@ class FrameworkFactory:
         elif frameworkName=="zeppelin":
             LOG.debug("creating ZeppelinFramework instance")
             framework = ZeppelinFramework(deployClass, attributes)
+        elif frameworkName=="jupyter":
+            LOG.debug("creating JupyterFramework instance")
+            framework = JupyterFramework(deployClass, attributes)
         return framework

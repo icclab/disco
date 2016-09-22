@@ -407,8 +407,7 @@ class Deploy(Task):
         masterBash = self.getFileContent("master_bash.sh")
         master_id_rsa = self.getFileContent("master.id_rsa").replace("\n","\\n")
         master_id_rsa_pub = self.getFileContent("master.id_rsa.pub").replace("\n","")
-        jupyter_notebook_config_py = self.getFileContent("jupyter_notebook_config.py")
-        zeppelin_env_sh = self.getFileContent("zeppelin-env.sh")
+
         # interpreter_json = getFileContent("interpreter.json")
 
         slaves = ""
@@ -475,8 +474,6 @@ class Deploy(Task):
                         {"$forloopslaves$": forLoopSlaves},
                         {"$for_loop_slaves$": hostsListFile},
                         {"$insert_master_pub_key$": insertMasterPublicKey},
-                        {"$jupyter_notebook_config.py$": jupyter_notebook_config_py},
-                        {"$zeppelin_env_sh$": zeppelin_env_sh},
                         # "$interpreter_json$": interpreter_json,
                         ]
         for item in replaceDict:

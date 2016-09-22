@@ -15,8 +15,8 @@ headers = {
 c.NotebookApp.allow_origin = '*'
 c.NotebookApp.allow_credentials = True
 
-c.NotebookApp.base_url = '/ipython/'
-c.NotebookApp.webapp_settings = {'static_url_prefix':'/ipython/static/'}
+c.NotebookApp.base_url = '/'
+c.NotebookApp.webapp_settings = {'static_url_prefix':'/static/'}
 
 if os.environ.get('NOTEBOOK_PASSWORD', 'none') != 'none':
     c.NotebookApp.password = os.environ['NOTEBOOK_PASSWORD']
