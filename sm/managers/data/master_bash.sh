@@ -31,6 +31,11 @@ echo -e "LC_ALL=en_US.UTF-8\nLANG=en_US.UTF-8" >> /etc/environment
 # serve deployment.log
 sh -c "while true; do nc -l -p 8084 < /home/ubuntu/deployment.log; done" > /dev/null 2>&1 &
 
+# monitoring from the outside that setup has started
+echo "0" > /home/ubuntu/progress.log
+sh -c "while true; do nc -l -p 6088 < /home/ubuntu/progress.log; done" > /dev/null 2>&1 &
+
+
 # disable IPv6 as Hadoop won't run on a system with it activated
 deploymentLog "disabling IPv6"
 echo -e "\nnet.ipv6.conf.all.disable_ipv6 = 1\nnet.ipv6.conf.default.disable_ipv6 = 1\nnet.ipv6.conf.lo.disable_ipv6 = 1" >> /etc/sysctl.conf
@@ -162,6 +167,9 @@ deploymentLog `date`
 
 # state 8
 setState
+
+# everything has been setup
+echo "1" > /home/ubuntu/progress.log
 
 # in the following line, the whole regular output will be redirected to the
 # file debug.log in the user's home directory and the error output to the file
