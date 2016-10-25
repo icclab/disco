@@ -28,7 +28,8 @@ $hadoop-env.sh$
 EOF
 
 cd /home/ubuntu/downloaded
-wget http://mirror.switch.ch/mirror/apache/dist/hadoop/common/hadoop-2.7.1/hadoop-2.7.1.tar.gz
+#wget http://mirror.switch.ch/mirror/apache/dist/hadoop/common/hadoop-2.7.1/hadoop-2.7.1.tar.gz
+wget http://reposerver/hadoop/hadoop-2.7.1.tar.gz
 
 # copying hadoop to slaves in a compact form and unpacking it on
 # the slaves

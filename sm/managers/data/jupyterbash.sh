@@ -1,5 +1,5 @@
 # now, let's get to jupyter
-echo "installing jupyter" >> /home/ubuntu/deployment.log
+deploymentLog "installing jupyter"
 apt-get install -y build-essential python3-dev python3-pip
 pip3 install jupyter
 
@@ -10,6 +10,6 @@ $jupyter_notebook_config.py$
 EOF
 chown ubuntu:ubuntu /home/ubuntu/.jupyter/jupyter_notebook_config.py
 su ubuntu -c "jupyter-notebook &"
-echo "jupyter ready" >> /home/ubuntu/deployment.log
+deploymentLog "jupyter ready"
 # jupyter is installed and running
 

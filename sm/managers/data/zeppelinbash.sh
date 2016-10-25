@@ -1,5 +1,5 @@
 # installing prerequisites for Zeppelin
-echo "installing some requisites for Zeppelin" >> /home/ubuntu/deployment.log
+deploymentLog "installing some requisites for Zeppelin"
 apt-get install -y python3-tk python3-numpy python3-matplotlib xserver-xorg
 rm /usr/bin/python
 # ln -s /usr/bin/python3 /usr/bin/python
@@ -8,11 +8,12 @@ echo "DISPLAY=:0.0" >> /etc/environment
 #
 
 # now, zeppelin should be installed
-echo "now, installing zeppelin" >> /home/ubuntu/deployment.log
+deploymentLog "now, installing zeppelin"
 mkdir /usr/lib/zeppelin
 chown ubuntu:ubuntu /usr/lib/zeppelin/
 cd /usr/lib/zeppelin/
-su ubuntu -c "wget http://mirror.switch.ch/mirror/apache/dist/zeppelin/zeppelin-0.6.1/zeppelin-0.6.1-bin-all.tgz"
+#su ubuntu -c "wget http://mirror.switch.ch/mirror/apache/dist/zeppelin/zeppelin-0.6.1/zeppelin-0.6.1-bin-all.tgz"
+su ubuntu -c "wget http://reposerver/zeppelin/zeppelin-0.6.1-bin-all.tgz"
 su ubuntu -c "tar -xvzf /usr/lib/zeppelin/zeppelin-0.6.1-bin-all.tgz"
 su ubuntu -c "mkdir -p /usr/lib/zeppelin/zeppelin-0.6.1-bin-all/{logs,run}"
 su ubuntu -c "ln -s /usr/lib/zeppelin/zeppelin-0.6.1-bin-all /usr/lib/zeppelin/zeppelin"
@@ -23,11 +24,11 @@ $zeppelin_env_sh$
 EOF
 chown ubuntu:ubuntu /usr/lib/zeppelin/zeppelin/conf/zeppelin-env.sh
 su ubuntu -c "source /etc/environment && source /etc/bash.bashrc && /usr/lib/zeppelin/zeppelin/bin/zeppelin-daemon.sh start"
-echo "zeppelin ready" >> /home/ubuntu/deployment.log
+deploymentLog "zeppelin ready"
 # zeppelin is installed and running
 
 
-#echo "downloading test file for zeppelin" >> /home/ubuntu/deployment.log
+deploymentLog "downloading test file for zeppelin"
 cd /home/ubuntu
 apt-get install -y unzip
 su ubuntu -c "wget http://archive.ics.uci.edu/ml/machine-learning-databases/00222/bank.zip"

@@ -29,10 +29,10 @@ setState
 echo -e "LC_ALL=en_US.UTF-8\nLANG=en_US.UTF-8" >> /etc/environment
 
 # serve deployment.log
-sh -c "while true; do nc -l -p 8084 < /home/ubuntu/status.log; done" > /dev/null 2>&1 &
+sh -c "while true; do nc -l -p 8084 < /home/ubuntu/deployment.log; done" > /dev/null 2>&1 &
 
 # disable IPv6 as Hadoop won't run on a system with it activated
-echo "disabling IPv6" >> /home/ubuntu/deployment.log
+deploymentLog "disabling IPv6"
 echo -e "\nnet.ipv6.conf.all.disable_ipv6 = 1\nnet.ipv6.conf.default.disable_ipv6 = 1\nnet.ipv6.conf.lo.disable_ipv6 = 1" >> /etc/sysctl.conf
 sysctl -p
 
@@ -49,7 +49,7 @@ cd /root
 
 mkdir /home/ubuntu/archives
 
-echo "setting up files for deployment on slaves..." >> /home/ubuntu/deployment.log
+deploymentLog "setting up files for deployment on slaves..."
 
 cat - >> /root/bashrc.suffix <<'EOF'
 export JAVA_HOME=/usr/lib/java/jdk
@@ -68,6 +68,8 @@ mv /root/bashrc.suffix /home/ubuntu/hadoopconf
 echo -e "127.0.0.1\tlocalhost\n`/sbin/ifconfig eth0 | grep 'inet addr' | cut -d: -f2 | awk '{print $1}'`  $masternode$" > /root/hosts.replacement
 cat - >> /root/hosts.replacement <<'EOF'
 $hostsfilecontent$
+
+86.119.37.182   reposerver
 EOF
 mv -f /root/hosts.replacement /home/ubuntu/hadoopconf
 
@@ -115,7 +117,7 @@ $shellframeworkbash$
 cd /home/ubuntu/downloaded
 wget http://mirror.switch.ch/mirror/apache/dist/zookeeper/zookeeper-3.4.9/zookeeper-3.4.9.tar.gz
 su ubuntu -c "parallel-scp -h /home/ubuntu/hosts.lst /home/ubuntu/downloaded/zookeeper-3.4.9.tar.gz /home/ubuntu"
-echo "unpacking hadoop" >> /home/ubuntu/deployment.log
+deploymentLog "unpacking hadoop"
 
 su ubuntu -c "parallel-ssh -t 2000 -h /home/ubuntu/hosts.lst \"tar -xzf /home/ubuntu/zookeeper-3.4.9.tar.gz\""
 # at this point, the config file has to be set and distributed to each machine
@@ -152,11 +154,11 @@ mkdir /usr/lib/storm
 
 duration=$SECONDS
 # save it into deployment.log...
-echo "deployment took me $duration seconds" >> /home/ubuntu/deployment.log
+deploymentLog "deployment took me $duration seconds"
 # ...and into debug.log
 echo "deployment took me $duration seconds"
 
-echo `date` >> /home/ubuntu/deployment.log
+deploymentLog `date`
 
 # state 8
 setState
