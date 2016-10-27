@@ -336,7 +336,7 @@ class Deploy(Task):
         slaveImage = self.getAttr('icclab.haas.slave.image')
         masterFlavor = self.getAttr('icclab.haas.master.flavor')
         slaveFlavor = self.getAttr('icclab.haas.slave.flavor')
-        slaveOnMaster = True #getAttr('icclab.haas.master.slaveonmaster').lower() in ['true', '1']
+        slaveOnMaster = getAttr('icclab.haas.master.slaveonmaster').lower() in ['true', '1']
         SSHPublicKeyName = self.getAttr('icclab.haas.master.sshkeyname')
         SSHMasterPublicKey = self.getAttr('icclab.haas.master.publickey')
         withFloatingIP = self.getAttr('icclab.haas.master.withfloatingip').lower() in ['true','1']
@@ -367,7 +367,7 @@ class Deploy(Task):
         dependencies = {}
 
         for item in iter(frameworks.keys()):
-            if frameworks[item]['included']=="True":
+            if frameworks[item]['included'].lower()=="true":
                 dependencies[item] = frameworks[item]
 
         resolved = []
