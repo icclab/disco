@@ -9,8 +9,15 @@
 # defaultSettings.cfg / assumptions within the serice orchestrator or with
 # pre-defined configuration files within the /data directory of the SO bundle.
 
+mkdir /home/ubuntu/webserver
+
 {
 SECONDS=0
+
+#
+cd /home/ubuntu/webserver
+python -m SimpleHTTPServer 8084 &
+cd /home/ubuntu
 
 state=0
 
@@ -22,10 +29,6 @@ function setState() {
 function deploymentLog() {
     echo $1 >> /home/ubuntu/webserver/deployment.log
 }
-mkdir /home/ubuntu/webserver
-cd /home/ubuntu/webserver
-python -m SimpleHTTPServer 8084 &
-cd /home/ubuntu
 
 # state 1
 setState
