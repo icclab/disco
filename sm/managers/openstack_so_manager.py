@@ -336,7 +336,7 @@ class Deploy(Task):
         slaveImage = self.getAttr('icclab.haas.slave.image')
         masterFlavor = self.getAttr('icclab.haas.master.flavor')
         slaveFlavor = self.getAttr('icclab.haas.slave.flavor')
-        slaveOnMaster = getAttr('icclab.haas.master.slaveonmaster').lower() in ['true', '1']
+        slaveOnMaster = self.getAttr('icclab.haas.master.slaveonmaster').lower() in ['true', '1']
         SSHPublicKeyName = self.getAttr('icclab.haas.master.sshkeyname')
         SSHMasterPublicKey = self.getAttr('icclab.haas.master.publickey')
         withFloatingIP = self.getAttr('icclab.haas.master.withfloatingip').lower() in ['true','1']
@@ -583,7 +583,7 @@ class Deploy(Task):
                                )
         curFlavor = None
         try:
-            curFlavor = nc.flavors.find(id=flavorID)
+            curFlavor = nc.flavors.find(id=str(flavorID))
         except:
             print "didn't find flavor with ID "+flavorID
 
