@@ -283,12 +283,18 @@ class Deploy(Task):
             for i in range(0, deploymentCount):
                 print i
             # here is where the actual SO deployment happens
-            #TODO
-            tmp = heatClient.stacks.create(**body)
+            self.entity.attributes['status'] = 'deployment succeeded'
+            try:
+                tmp = heatClient.stacks.create(**body)
+                # the return value will be saved locally so it can be retrieved for future operations
+                SOInstanceManager.addSO(SOContainer(tmp),self.entity.identifier)
+                LOG.debug("new stack's ID: "+tmp['stack']['id'])
+            except Exception as e:
+                self.entity.attributes['status'] = 'something with deployment went wrong; with exception: %(1)s : %(2)s (%(3)s)' % {"1": str(e.error['title']), "2": str(e.error['explanation']),"3": str(e.error['error']['message'])}
+                self.entity.attributes['stack_status'] = str(e.error['error']['message'])
+                LOG.debug("something went wrong with deployment")
 
-            # the return value will be saved locally so it can be retrieved for future operations
-            SOInstanceManager.addSO(SOContainer(tmp),self.entity.identifier)
-            LOG.debug("new stack's ID: "+tmp['stack']['id'])
+
 
         return self.entity, self.extras
 
@@ -376,7 +382,12 @@ class Deploy(Task):
         shellFW.set_dependencies(dependencies)
         self.dep_resolve(shellFW, resolved, [])
 
-        clusterFw = resolved[0]
+        clusterFw = None
+        for framework in resolved:
+            if framework.get_name()=="cluster":
+                clusterFw = framework
+                pass
+
         clusterFw.set_variable({"master_name": self.master_name, "slave_name": slave_name, "slave_count": slaveCount})
 
         def getFrameworkWithName(fwName):
@@ -685,13 +696,16 @@ class Retrieve(Task):
         # the stack's identifier needs to be read from the locally saved data
         soid = self.entity.identifier
         tempSO = SOInstanceManager.getSO(soid)
-        stackID = tempSO.data[0]['stack']['id']
 
-        # a heat client needs to be acquired which will provide the connection to OpenStack
-        heatClient = ClientProvider.getOrchestrator(self.extras)
+        curstack = None
+        if(tempSO!=None):
+            stackID = tempSO.data[0]['stack']['id']
 
-        # the current stack contains the data about the output values
-        curstack = heatClient.stacks.get(stackID)
+            # a heat client needs to be acquired which will provide the connection to OpenStack
+            heatClient = ClientProvider.getOrchestrator(self.extras)
+
+            # the current stack contains the data about the output values
+            curstack = heatClient.stacks.get(stackID)
 
         # if no external IP has been assigned (because a possible error happened)
         externalIP = "none"
@@ -813,7 +827,12 @@ class Destroy(Task):
             'stack_id': tempSO.data[0]['stack']['id']
         }
 
-        heatClient.stacks.delete(**body)
+        try:
+            heatClient.stacks.delete(**body)
+        except:
+            self.entity.attributes['status'] = 'something with deletion went wrong'
+            LOG.debug("something went wrong with deletion")
+
 
         # the SO can be deleted again as the stack has been deleted too by this moment
         SOInstanceManager.deleteSO(soid)
