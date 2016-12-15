@@ -3,7 +3,7 @@ from framework import Framework
 class JupyterFramework(Framework):
     def __init__(self, deployClass, attributes):
         super(JupyterFramework,self).__init__(deployClass, attributes)
-        self.dependencies = {}
+        self.dependencies = {"cluster": {"master_name": {}}}
 
     def get_bash(self):
         jupyter_notebook_config_py = self.deployClass.getFileContent("jupyter_notebook_config.py")
