@@ -1,0 +1,21 @@
+{
+    "service_type": "http://schemas.cloudcomplab.ch/occi/sm#disco",
+    "service_description": "DISCO: Hadoop as a service",
+    "service_attributes": {
+        "icclab.disco.components.heat.masterimage": "",
+        "icclab.disco.components.heat.slaveimage": "",
+        "icclab.disco.components.sshkeyname": "",
+        "icclab.disco.components.heat.masterflavor": "",
+        "icclab.disco.components.heat.slaveflavor": "",
+        "icclab.disco.components.heat.slavecount": "",
+        "icclab.disco.hurtle.username": "",
+        "icclab.disco.hurtle.region": "",
+        "icclab.disco.hurtle.password": "",
+        "icclab.disco.components.heat.sshkeypairname": "",
+        "icclab.disco.components.heat.networkname": "",
+        "icclab.disco.components.heat.externalnetworkname": "",
+        "icclab.disco.dependencies.inject": ""
+    },
+    "service_endpoint": "http://haas.cloudcomplab.ch:8888/disco/",
+    "depends_on": []
+}
