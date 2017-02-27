@@ -1,3 +1,4 @@
+<img src="https://blog.zhaw.ch/icclab/files/2017/02/disco_logo.jpg" alt="DISCO" width="620" />
 # DISCO
 
 <a href="https://blog.zhaw.ch/icclab/files/2017/02/disco_architecture.png" target="_blank"><img src="https://blog.zhaw.ch/icclab/files/2017/02/disco_architecture.png" alt="Architecture" width="620"></img></a>
