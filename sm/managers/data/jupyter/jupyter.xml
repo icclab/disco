@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<discocomponent>
+    <properties>
+        <!-- these properties can be set over HTTP parameters as well; they will be inserted automatically -->
+        <property name="staticoutput" value="true" />
+        <property name="included" value="false" />
+		<property name="outputtype" value="append" />
+    </properties>
+
+	<dependencies>
+		<dependency name="shell" state="start" />
+	</dependencies>
+
+<!--
+how to download each dependency in advance and install them later:
+
+download:
+`apt-get install - -dry-run python-pip python-dev`
+
+install:
+`sudo dpkg -i *`
+
+
+pip part:
+download packages:
+`pip install -d . jupyter`
+
+install:
+`sudo pip install - -no-deps *`
+
+-->
+
+	<output>
+<![CDATA[
+# instead of installing jupyter and its dependencies over public apt-get and
+# pip repositories, the sources and packages will be downloaded from a private
+# repository server
+cd /home/ubuntu
+su ubuntu -c "wget http://reposerver/jupyter/jupyter.tar.gz"
+su ubuntu -c "tar -xzf /home/ubuntu/jupyter.tar.gz"
+
+dpkg -i /home/ubuntu/jupyter/pythonpip/*
+pip install --no-deps /home/ubuntu/jupyter/pipjupyter/six-1.10.0-py2.py3-none-any.whl
+pip install --no-deps /home/ubuntu/jupyter/pipjupyter/*
+
+# create jupyter_notebook_config.py:
+su ubuntu -c "mkdir /home/ubuntu/.jupyter"
+cat - >> /home/ubuntu/.jupyter/jupyter_notebook_config.py << 'EOF'
+# See http://ipython.org/ipython-doc/1/interactive/public_server.html for more information.
+# Configuration file for ipython-notebook.
+import os
+
+c = get_config()
+c.NotebookApp.ip = '0.0.0.0'
+c.NotebookApp.port = 8888
+c.NotebookApp.open_browser = False
+c.NotebookApp.profile = u'default'
+c.IPKernelApp.matplotlib = 'inline'
+
+headers = {
+  'X-Frame-Options': 'ALLOWALL',
+}
+c.NotebookApp.allow_origin = '*'
+c.NotebookApp.allow_credentials = True
+
+c.NotebookApp.base_url = '/'
+c.NotebookApp.webapp_settings = {'static_url_prefix':'/static/'}
+
+if os.environ.get('NOTEBOOK_PASSWORD', 'none') != 'none':
+  c.NotebookApp.password = os.environ['NOTEBOOK_PASSWORD']
+
+if os.environ.get('CORS_ORIGIN', 'none') != 'none':
+  c.NotebookApp.allow_origin = os.environ['CORS_ORIGIN']
+
+c.NotebookApp.webapp_settings['headers'] = headers
+c.NotebookApp.token = u''
+EOF
+chown ubuntu:ubuntu /home/ubuntu/.jupyter/jupyter_notebook_config.py
+su ubuntu -c "jupyter-notebook &amp;"
+deploymentLog "jupyter ready"
+# jupyter is installed and running
+]]>
+</output>
+
+
+
+</discocomponent>

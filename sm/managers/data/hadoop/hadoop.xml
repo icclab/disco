@@ -1,0 +1,476 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<discocomponent>
+    <properties>
+        <!-- these properties can be set over HTTP parameters as well; they will be inserted automatically -->
+        <property name="staticoutput" value="false" />
+		<property name="property" value="something else" />
+        <property name="included" value="false" />
+		<property name="outputtype" value="replace" />
+    </properties>
+
+	<dependencies>
+		<dependency name="heat" state="start">
+			<variable name="slavecount" />
+			<variable name="mastername" />
+			<variable name="slavename" />
+		</dependency>
+		<dependency name="shell" state="start" />
+	</dependencies>
+
+	<functions>
+	</functions>
+
+	<globaloutput />
+
+	<output />
+
+	<hadoopstart><![CDATA[
+# from here, Hadoop installation
+
+# create yarn-site.xml:
+cat - > /home/ubuntu/hadoopconf/yarn-site.xml << 'EOF'
+<?xml version="1.0"?>
+<!--
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License. See accompanying LICENSE file.
+-->
+<configuration>
+
+<!-- Site specific YARN configuration properties -->
+<property>
+<name>yarn.resourcemanager.resource-tracker.address</name>
+<value>$mastername$:8025</value>
+<description>Enter your ResourceManager hostname.</description>
+</property>
+
+  <property>
+      <name>yarn.nodemanager.aux-services</name>
+      <value>mapreduce_shuffle</value>
+  </property>
+
+<property>
+    <name>yarn.resourcemanager.scheduler.class</name>
+    <value>org.apache.hadoop.yarn.server.resourcemanager.scheduler.fair.FairScheduler</value>
+</property>
+<property>
+    <name>yarn.scheduler.fair.allocation.file</name>
+    <value>/usr/lib/hadoop/hadoop-2.7.1/share/hadoop/tools/sls/sample-conf/fair-scheduler.xml</value>
+</property>
+
+<property>
+<name>yarn.resourcemanager.address</name>
+<value>$mastername$:8032</value>
+</property>
+
+<property>
+  <name>yarn.nodemanager.delete.debug-delay-sec</name>
+  <value>600</value>
+</property>
+
+<property>
+<name>yarn.resourcemanager.hostname</name>
+<value>$masteraddress$</value>
+</property>
+
+
+  <!-- following entry is tentative - disabling virtual memory checking and setting the ratio to physical memory -->
+<property>
+ <name>yarn.nodemanager.vmem-check-enabled</name>
+  <value>false</value>
+  <description>Whether virtual memory limits will be enforced for containers</description>
+</property>
+<property>
+ <name>yarn.nodemanager.vmem-pmem-ratio</name>
+  <value>4</value>
+  <description>Ratio between virtual memory to physical memory when setting memory limits for containers</description>
+</property>
+</configuration>
+
+EOF
+sed -i 's/\$masteraddress\$/'`/sbin/ifconfig eth0 | grep 'inet addr' | cut -d: -f2 | awk '{print $1}'`'/g' /home/ubuntu/hadoopconf/yarn-site.xml
+
+# create core-site.xml:
+cat - > /home/ubuntu/hadoopconf/core-site.xml << 'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+<!--
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License. See accompanying LICENSE file.
+-->
+
+<!-- Put site-specific property overrides in this file. -->
+
+<configuration>
+<property>
+  <name>hadoop.tmp.dir</name>
+  <value>/app/hadoop/tmp</value>
+  <description>A base for other temporary directories.</description>
+</property>
+
+<property>
+  <name>fs.defaultFS</name>
+  <value>hdfs://$mastername$:54310</value>
+  <description>The name of the default file system.  A URI whose
+  scheme and authority determine the FileSystem implementation.  The
+  uri's scheme determines the config property (fs.SCHEME.impl) naming
+  the FileSystem implementation class.  The uri's authority is used to
+  determine the host, port, etc. for a filesystem.</description>
+</property>
+
+<property>
+  <name>fs.trash.interval</name>
+  <value>0</value>
+  <description>disable server trash</description>
+</property>
+
+<property>
+  <name>io.file.buffer.size</name>
+  <value>131072</value>
+</property>
+</configuration>
+
+
+EOF
+
+# create mapred-site.xml:
+cat - >> /home/ubuntu/hadoopconf/mapred-site.xml << 'EOF'
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+<!--
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License. See accompanying LICENSE file.
+-->
+
+<!-- Put site-specific property overrides in this file. -->
+
+<configuration>
+<property>
+  <name>mapreduce.task.io.sort.mb</name>
+  <value>150</value>
+</property>
+
+<property>
+  <name>mapred.job.tracker</name>
+  <value>$mastername$:54311</value>
+  <description>The host and port that the MapReduce job tracker runs
+  at.  If "local", then jobs are run in-process as a single map
+  and reduce task.
+  </description>
+</property>
+
+<property>
+  <name>mapreduce.framework.name</name>
+  <value>yarn</value>
+  <description>Which framework should be used for the mapreduce job?
+    local - do it locally
+    classic - the old-fashioned MR1 way
+    yarn - the new MR2 way
+  </description>
+</property>
+
+<property>
+  <name>mapreduce.map.java.opts</name>
+  <value>-Xmx819m</value>
+</property>
+
+<property>
+  <name>mapreduce.reduce.java.opts</name>
+  <value>-Xmx1638m</value>
+</property>
+
+<property>
+  <name>mapreduce.map.memory.mb</name>
+  <value>1024</value>
+</property>
+
+<property>
+  <name>mapreduce.reduce.memory.mb</name>
+  <value>2048</value>
+</property>
+
+
+
+<property>
+ <name>yarn.resourcemanager.resource-tracker.address</name>
+ <value>$mastername$:8025</value>
+ <description>Enter your ResourceManager hostname.</description>
+</property>
+
+<property>
+  <name>yarn.nodemanager.aux-services</name>
+  <value>mapreduce_shuffle</value>
+</property>
+
+<property>
+  <name>yarn.scheduler.minimum-allocation-mb</name>
+  <value>1024</value>
+</property>
+
+<property>
+  <name>yarn.scheduler.maximum-allocation-mb</name>
+  <value>2048</value>
+</property>
+
+<property>
+  <name>yarn.nodemanager.resource.memory-mb</name>
+  <value>2048</value>
+</property>
+
+<property>
+  <name>yarn.app.mapreduce.am.resource.mb</name>
+  <value>2048</value>
+</property>
+
+<property>
+  <name>yarn.app.mapreduce.am.command-opts</name>
+  <value>-Xmx1638m</value>
+</property>
+
+</configuration>
+
+
+EOF
+
+# create hdfs-site.xml: (here, replication factor has to be entered!!!)
+cat - >> /home/ubuntu/hadoopconf/hdfs-site.xml << 'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+<!--
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License. See accompanying LICENSE file.
+-->
+
+<!-- Put site-specific property overrides in this file. -->
+
+<configuration>
+<property>
+  <name>dfs.replication</name>
+  <value>1</value>
+  <description>Default block replication.
+  The actual number of replications can be specified when the file is created.
+  The default is used if replication is not specified in create time.
+  </description>
+</property>
+</configuration>
+
+EOF
+
+# create hadoop-env.sh:
+cat - >> /home/ubuntu/hadoopconf/hadoop-env.sh << 'EOF'
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Set Hadoop-specific environment variables here.
+
+# The only required environment variable is JAVA_HOME.  All others are
+# optional.  When running a distributed configuration it is best to
+# set JAVA_HOME in this file, so that it is correctly defined on
+# remote nodes.
+
+# The java implementation to use.
+export JAVA_HOME=/usr/lib/java/jdk/
+
+# The jsvc implementation to use. Jsvc is required to run secure datanodes
+# that bind to privileged ports to provide authentication of data transfer
+# protocol.  Jsvc is not required if SASL is configured for authentication of
+# data transfer protocol using non-privileged ports.
+#export JSVC_HOME=${JSVC_HOME}
+
+export HADOOP_CONF_DIR="/etc/hadoop"
+
+# Extra Java CLASSPATH elements.  Automatically insert capacity-scheduler.
+for f in $HADOOP_HOME/contrib/capacity-scheduler/*.jar; do
+if [ "$HADOOP_CLASSPATH" ]; then
+  export HADOOP_CLASSPATH=$HADOOP_CLASSPATH:$f
+else
+  export HADOOP_CLASSPATH=$f
+fi
+done
+
+# The maximum amount of heap to use, in MB. Default is 1000.
+#export HADOOP_HEAPSIZE=
+#export HADOOP_NAMENODE_INIT_HEAPSIZE=""
+
+# Extra Java runtime options.  Empty by default.
+export HADOOP_OPTS="$HADOOP_OPTS -Djava.net.preferIPv4Stack=true"
+
+# Command specific options appended to HADOOP_OPTS when specified
+export HADOOP_NAMENODE_OPTS="-Dhadoop.security.logger=${HADOOP_SECURITY_LOGGER:-INFO,RFAS} -Dhdfs.audit.logger=${HDFS_AUDIT_LOGGER:-INFO,NullAppender} -XX:+UseParallelGC $HADOOP_NAMENODE_OPTS"
+export HADOOP_DATANODE_OPTS="-Dhadoop.security.logger=ERROR,RFAS $HADOOP_DATANODE_OPTS"
+
+export HADOOP_SECONDARYNAMENODE_OPTS="-Dhadoop.security.logger=${HADOOP_SECURITY_LOGGER:-INFO,RFAS} -Dhdfs.audit.logger=${HDFS_AUDIT_LOGGER:-INFO,NullAppender} $HADOOP_SECONDARYNAMENODE_OPTS"
+
+export HADOOP_NFS3_OPTS="$HADOOP_NFS3_OPTS"
+export MAP_OPTS="-Xmx512m $MAP_OPTS"
+
+# The following applies to multiple commands (fs, dfs, fsck, distcp etc)
+export HADOOP_CLIENT_OPTS="-Xmx512m $HADOOP_CLIENT_OPTS"
+#HADOOP_JAVA_PLATFORM_OPTS="-XX:-UsePerfData $HADOOP_JAVA_PLATFORM_OPTS"
+
+# On secure datanodes, user to run the datanode as after dropping privileges.
+# This **MUST** be uncommented to enable secure HDFS if using privileged ports
+# to provide authentication of data transfer protocol.  This **MUST NOT** be
+# defined if SASL is configured for authentication of data transfer protocol
+# using non-privileged ports.
+export HADOOP_SECURE_DN_USER=${HADOOP_SECURE_DN_USER}
+
+# Where log files are stored.  $HADOOP_HOME/logs by default.
+#export HADOOP_LOG_DIR=${HADOOP_LOG_DIR}/$USER
+
+# Where log files are stored in the secure data environment.
+export HADOOP_SECURE_DN_LOG_DIR=${HADOOP_LOG_DIR}/${HADOOP_HDFS_USER}
+
+###
+# HDFS Mover specific parameters
+###
+# Specify the JVM options to be used when starting the HDFS Mover.
+# These options will be appended to the options specified as HADOOP_OPTS
+# and therefore may override any similar flags set in HADOOP_OPTS
+#
+# export HADOOP_MOVER_OPTS=""
+
+###
+# Advanced Users Only!
+###
+
+# The directory where pid files are stored. /tmp by default.
+# NOTE: this should be set to a directory that can only be written to by
+#       the user that will run the hadoop daemons.  Otherwise there is the
+#       potential for a symlink attack.
+export HADOOP_PID_DIR=${HADOOP_PID_DIR}
+export HADOOP_SECURE_DN_PID_DIR=${HADOOP_PID_DIR}
+
+# A string representing this instance of hadoop. $USER by default.
+export HADOOP_IDENT_STRING=$USER
+
+#export YARN_RESOURCEMANAGER_HEAPSIZE=384
+#export YARN_PROXYSERVER_HEAPSIZE=192
+#export YARN_NODEMANAGER_HEAPSIZE=256
+#export HADOOP_JOB_HISTORYSERVER_HEAPSIZE=256
+#export HADOOP_NAMENODE_HEAPSIZE=384
+#export HADOOP_DATANODE_HEAPSIZE=192
+
+
+
+EOF
+
+cd /home/ubuntu/downloaded
+#wget http://mirror.switch.ch/mirror/apache/dist/hadoop/common/hadoop-2.7.1/hadoop-2.7.1.tar.gz
+wget http://reposerver/hadoop/hadoop-2.7.1.tar.gz
+
+# copying hadoop to slaves in a compact form and unpacking it on
+# the slaves
+deploymentLog "copying hadoop to slaves"
+su ubuntu -c "parallel-scp -h /home/ubuntu/hosts.lst /home/ubuntu/downloaded/hadoop-2.7.1.tar.gz /home/ubuntu"
+deploymentLog "unpacking hadoop"
+
+setState
+su ubuntu -c "parallel-ssh -t 2000 -h /home/ubuntu/hosts.lst \"tar -xzf /home/ubuntu/hadoop-2.7.1.tar.gz\""
+
+
+setState
+
+deploymentLog "setting up hadoop"
+# copy the SSH files to all slaves
+su ubuntu -c "parallel-scp -h ~/hosts.lst ~/.ssh/{config,id_rsa,id_rsa.pub} ~/.ssh"
+su ubuntu -c "parallel-ssh -h /home/ubuntu/hosts.lst \"sudo mkdir /usr/lib/hadoop\""
+su ubuntu -c "parallel-ssh -h /home/ubuntu/hosts.lst \"sudo mv /home/ubuntu/hadoop-2.7.1 /usr/lib/hadoop\""
+su ubuntu -c "parallel-ssh -h /home/ubuntu/hosts.lst \"sudo ln -s /usr/lib/hadoop/hadoop-2.7.1 /usr/lib/hadoop/hadoop\""
+su ubuntu -c "parallel-ssh -h /home/ubuntu/hosts.lst \"sudo mv /usr/lib/hadoop/hadoop-2.7.1/etc/hadoop/ /etc/\""
+su ubuntu -c "parallel-scp -h /home/ubuntu/hosts.lst /home/ubuntu/hadoopconf/bashrc.suffix /home/ubuntu"
+su ubuntu -c "parallel-ssh -h /home/ubuntu/hosts.lst \"sudo sh -c \\\"cat /home/ubuntu/bashrc.suffix >> /etc/bash.bashrc\\\"\""
+
+# now, let's copy the files to the slaves
+su ubuntu -c "parallel-ssh -h /home/ubuntu/hosts.lst \"sudo mkdir -p /app/hadoop/tmp\""
+su ubuntu -c "parallel-ssh -h /home/ubuntu/hosts.lst \"sudo chown ubuntu:ubuntu /app/hadoop/tmp\""
+su ubuntu -c "parallel-ssh -h /home/ubuntu/hosts.lst \"sudo chmod 750 /app/hadoop/tmp\""
+su ubuntu -c "parallel-ssh -h /home/ubuntu/hosts.lst \"sudo chown -R ubuntu:ubuntu /etc/hadoop\""
+
+# the file has to be copied into the user directory as ubuntu doesn't have
+# permissions to write into /etc/hadoop
+deploymentLog "copying config files from master to slave..."
+su ubuntu -c "parallel-scp -h /home/ubuntu/hosts.lst /home/ubuntu/hadoopconf/core-site.xml /home/ubuntu"
+# move file to its final location (/etc/hadoop)
+su ubuntu -c "parallel-ssh -h /home/ubuntu/hosts.lst \"sudo mv -f /home/ubuntu/core-site.xml /etc/hadoop\""
+
+su ubuntu -c "parallel-scp -h /home/ubuntu/hosts.lst /home/ubuntu/hadoopconf/{{mapred,hdfs,yarn}-site.xml,hadoop-env.sh} /etc/hadoop"
+
+#su ubuntu -c "parallel-scp -h /home/ubuntu/hosts.lst /home/ubuntu/hadoopconf/hosts.replacement /home/ubuntu"
+#su ubuntu -c "parallel-ssh -h /home/ubuntu/hosts.lst \"sudo mv -f /home/ubuntu/hosts.replacement /etc/hosts\""
+
+su ubuntu -c "parallel-ssh -h /home/ubuntu/hosts.lst \"ln -s /etc/hadoop /usr/lib/hadoop/hadoop-2.7.1/etc/hadoop\""
+
+
+# set master and slave nodes
+echo $mastername$ > /etc/hadoop/masters
+cat - > /etc/hadoop/slaves << 'EOF'
+$mastername$
+]]></hadoopstart>
+
+
+	<hadoopend><![CDATA[EOF
+source /etc/hadoop/hadoop-env.sh
+su ubuntu -c "/usr/lib/hadoop/hadoop/bin/hdfs namenode -format"
+su ubuntu -c "/usr/lib/hadoop/hadoop/sbin/start-dfs.sh"
+su ubuntu -c "/usr/lib/hadoop/hadoop/sbin/start-yarn.sh"
+
+#cd /home/ubuntu
+#git clone https://github.com/Pentadactylus/yarn_jars.git
+#echo "CLASSPATH=/home/ubuntu/yarn_jars/hadoop-client-1.2.1.jar:/home/ubuntu/yarn_jars/commons-cli-1.2.jar:/home/ubuntu/yarn_jars/hadoop-core-1.2.1.jar" >> /etc/bash.bashrc
+
+deploymentLog "hadoop cluster ready"
+
+]]>
+</hadoopend>
+
+
+</discocomponent>

@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<discocomponent>
+    <properties>
+        <!-- these properties can be set over HTTP parameters as well; they will be inserted automatically -->
+        <property name="staticoutput" value="true" />
+        <property name="included" value="false" />
+		<property name="outputtype" value="append" />
+    </properties>
+
+	<dependencies>
+        <dependency name="spark" />
+        <dependency name="hadoop" />
+		<dependency name="shell" state="start" />
+	</dependencies>
+
+
+
+	<output>
+
+# install ZooKeeper
+cd /home/ubuntu/downloaded
+wget http://mirror.switch.ch/mirror/apache/dist/zookeeper/zookeeper-3.4.9/zookeeper-3.4.9.tar.gz
+su ubuntu -c "parallel-scp -h /home/ubuntu/hosts.lst /home/ubuntu/downloaded/zookeeper-3.4.9.tar.gz /home/ubuntu"
+deploymentLog "unpacking hadoop"
+
+su ubuntu -c "parallel-ssh -t 2000 -h /home/ubuntu/hosts.lst \"tar -xzf /home/ubuntu/zookeeper-3.4.9.tar.gz\""
+# at this point, the config file has to be set and distributed to each machine
+cat - &gt; /home/ubuntu/downloaded/conf/zoo.cfg &lt;&lt; 'EOF'
+$zoo_cfg$
+EOF
+su ubuntu -c "parallel-ssh -t 2000 -h /home/ubuntu/hosts.lst \"sudo mkdir /usr/lib/zookeeper &amp;&amp; sudo chown ubuntu:ubuntu /usr/lib/zookeeper\""
+su ubuntu -c "parallel-ssh -t 2000 -h /home/ubuntu/hosts.lst \"mv /home/ubuntu/zookeeper-3.4.9 /usr/lib/zookeeper\""
+
+
+
+
+
+# example zookeeper.../conf/zoo.cfg file; for each machine the same (file 'myid' within dataDir directory specifies the individual server number):
+#tickTime=2000
+#dataDir=/var/lib/zookeeper
+#clientPort=2181
+#initLimit=5
+#syncLimit=2
+#server.1=masternode-e45d1fc5-758e-11e6-a3e0-34363b7e7806:2888:3888
+#server.2=slavenode-e45d1fc5-758e-11e6-a3e0-34363b7e7806-1:2888:3888
+
+</output>
+
+
+
+</discocomponent>
