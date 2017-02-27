@@ -171,7 +171,7 @@ class Deploy(Task):
                     properties[component_name][property_name] = prop_value
 
             # at this point, some individual property settings can be done
-            properties = self.merge_dict({'heat': {'mastername': 'disco_manager', 'slavename': 'disco_worker'}},properties)
+            properties = self.merge_dict({'heat': {'mastername': 'disco-manager', 'slavename': 'disco-worker'}},properties)
             discoinst.inject_requested_properties(properties)
 
             stackinfo = discoinst.deploy()
