@@ -19,8 +19,7 @@ __author__ = 'andy'
 
 from sm.service import Service
 from sm.service import MApplication
-import sm.admin as admin
-
+from sm import admin
 
 import thread
 

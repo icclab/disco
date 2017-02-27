@@ -1,132 +1,219 @@
-# DISCO
+# MCN Service Manger
+This is the MCN Service Manager.
 
-## Introduction
+## Installation Instructions
 
-DISCO stands for DIStributed COmputing. It provides the user with the ability to deploy a distributed computing cluster in as short a time as imaginable. Not only will it setup the whole virtual computing cluster but it will also install the desired distributed computing frameworks on it. Then, it will guide you through the entire lifecycle of the cluster until its disposal, which is also maintained by DISCO. You will be amazed by how much work DISCO is taking care of - and how intuitively it handles your requests.
 
-## Running DISCO
+The following installation instructions have been tested and verified with the centos:7 docker image. Other OS should work just fine, as long as they provide you with a way of installing python.
 
-In the following section, I will explain how to configure and use the Service Manager (SM; part of the Hurtle framework), the core part of DISCO.
+	# install the epel repo, it contains python-pip
+	yum install epel-release
+	
+	# get git and pip, a c compiler and python headers are also requires for some dependencies
+	yum install gcc python-devel git python-pip
+	
+	# clone this repo
+	git clone https://github.com/icclab/hurtle_sm.git
+	
+	# install the dependencies
+	cd hurtle_sm ; python setup.py install
 
-### Overview over the system
 
-DISCO is an orchestration system to create distributed computing clusters. How this is done you ask? The answer is over Heat templates. These templates will determine the lifecycle of computing clusters, probably installed on OpenStack.
+## Quickstart
 
-In the original Hurtle release, you needed an OpenShift (or similar) system setup in order to execute a Service Orchestrator (SO). With DISCO, you don't need the SO anymore - everything will be automatically deployed as a distributed computing cluster.
+An example of a simple Service definition can be found in `./example`
+For service manager implementers they simply need to follow this example for their own service.
 
-Provisioning a cluster is done in two steps:
+You can run this example by `python bin/service_manager.py -c etc/sm.cfg`, after properly updating the config file under etc/sm.cfg. In particular replace absolute paths with your own values.
 
-1. deploying DISCO on a dedicated machine which can be done on the same OpenStack system as the cluster is to be hosted on or on a different one - it can even be deployed on a dedicated physical computer or on localhost (for testing)
-2. issuing the creation request to DISCO
+The SM library is under the `sm` directory.
 
-For the detailed configuration and example commands, please refer to the following section.
+The example service manager (`example/data/service_manifest.json`) uses and extends this library.
 
-### Configuration (Setting up DISCO)
+## Upfront Notice
 
-The most basic need is an OpenStack installation with access to the necessary resources for the clusters. Also, you need to expose the OpenStack endpoints to DISCO. These are actually just the regular endpoints so no complication in this part. You can find them on Horizon (OpenStack's web interface) -> Compute -> Access & Security -> API Access. 
+This is important. The SM will **only** deploy the SO's code that is on its `master` branch. This only applies if you plan to deploy on OpenShift 2.
 
-1. The dependencies need to be installed first which include some python tools.
+## Next Steps
+
+1. Follow the installations instructions above
+
+2. Use the example service manifest as your starting point (`example/data/service_manifest.json`). Edit your service type 
+definition. For example:
+
+        {
+    	    "service_type": "http://schemas.mobile-cloud-networking.eu/occi/sm#test-compo",
+    	    "service_description": "Test composed service",
+    	    "service_attributes": {
+    	        "mcn.endpoint.p3": "immutable",
+    	        "mcn.endpoint.p4": "immutable"
+    	    },
+    	    "service_endpoint": "http://127.0.0.1:8888/test-compo/",
+    	    "depends_on": [
+              { "http://schemas.mobile-cloud-networking.eu/occi/sm#demo1": { "inputs": [] } },
+              { "http://schemas.mobile-cloud-networking.eu/occi/sm#demo2": {
+                  "inputs": [
+                    "http://schemas.mobile-cloud-networking.eu/occi/sm#demo1#mcn.endpoint.p1"
+                  ] }
+              }
+            ],
+    	}
+    	
+    Compared to the previous version of the service manager, attributes which were in the typical `my_service_sm.py`, service type, description and attributes are all located in the service manifest json file, but are otherwise unchanged.
     
-    ```
-    sudo apt-get install -y git python-pip python-dev python-flask libffi-dev libssl-dev python-novaclient python-flask
-    ```
-
-2. Now, the SDK can be installed.
-
-    ```
-    git clone https://github.com/icclab/hurtle_cc_sdk.git
-    cd hurtle_cc_sdk
-    sudo python setup.py install
-    ```
+    The `service_endpoint` value will be the url of the new service as registered on Keystone for the corresponding service type. This is only used if the register_service parameter is set to True in the configuration file sm.cfg.
     
-3. At this point, DISCO can be installed.
-
-    ```
-    git clone https://github.com/icclab/disco.git
-    cd disco
-    sudo python setup.py install
-    ```
+    The `depends_on` list specifies which services are necessary for the new service to be properly configured, but will not be exposed to external users. They are internal dependencies which can either require no input (atomic services), or require some input parameters from one of the other dependencies.
     
-4. Before you can start DISCO, you need to make a couple of changes in the sm.cfg configuration file within the etc subdirectory of DISCO. These values are:
-    - manifest: the path to the file service_manifest.json which is in the sm/managers/data subfolder of DISCO but could be at any other location.
-    - design_uri: Keystone's public endpoint in OpenStack.
-    - service_params: the path of the service_params.json file; located within the etc subfolder of DISCO.
-    - root_folder: the path of the data template folder required for heat template creation; usually under sm/managers/data
-
-5. As soon as these changes are made, you can start DISCO with the command
-
-    ```
-    service_manager -c /path/to/sm.cfg
-    ```
+    In the example above,
+        
+        { "http://schemas.mobile-cloud-networking.eu/occi/sm#demo2": {
+            "inputs": [
+                "http://schemas.mobile-cloud-networking.eu/occi/sm#demo1#mcn.endpoint.p1"
+            ] 
+        }
+    the `demo2` service requires a parameter named `mcn.endpoint.p1` from the `demo1` service. 
     
-    At this point, DISCO is running and you can issue the HTTP commands to create a cluster.
+    Using depends on allows automatic deployment and provisioning of all service dependencies, so that it is not necessary to create them manually in a new SO. 
     
-6. If you are running into problems, you might have to upgrade one package or another, such as requests or pbr. (which was the case for me)
+    On the other hand, to actually retrieve the endpoints and generally attributes of the service dependencies, you **must** use the Resolver class as defined in the service_orchestrator.py file. More details in the corresponding section.
+
+3. Take a copy of `etc/sm_ops2.cfg` or `etc/sm_ops3.cfg` and customise it according to your own service (e.g. setting the path to your SO bundle as well as to the Service Manifest)
+
+4. Edit the existing SO implementation and make it work for you.
+
+5. Run your service manager. Example using the demo:
+
+        $ python bin/service_manager.py -c etc/sm.cfg
+        
+### Resolver
+
+The resolver's role is to manage the lifecycle of the service dependencies of a given service. To take advantage of this, a SO implementation execution **must** inherit from `service_orchestrator.Execution`. 
+
+From a SO, it is easy to retrieve attributes from the created service dependencies by accessing the retriever's `service_inst_endpoints` class attribute as an array of service attributes. This is shown in the sample SO example.
+
+    LOG.info(self.resolver.service_inst_endpoints)
     
-### Creating a cluster
+The SO is then free to use these deployed services as required.
 
-In order to have a distributed computing cluster setup, you will need to issue a couple of HTTP commands. So let's have a look at those. Additionally, you will need a SSH public key registered within OpenStack which you can login with later on the cluster's master.
+## Logging
 
-1. You can list all the available services of a specific DISCO SM with the command
+The Service Manager now includes a way to also send logs to a Graylog2 server on top of the default file logging, for easier log search and visualisation. To use this functionality, edit the following configuration within the general section of sm.cfg:
 
-    ```
-    curl -v -X GET http://xxx.xxx.xxx.xxx:8888/-/ -H 'Accept: text/occi' -H "X-User-Name: $OS_USERNAME" -H "X-Password: $OS_PASSWORD" -H "X-Tenant-Name: $OS_TENANT_NAME"
-    ```
+    [general]
+    # This is the path and file name of where the SM's log file is stored.
+    # required; default: sm.log string
+    log_file=sm.log
+    # hostname of where the Graylog2 server is running at
+    graylog_api=log.cloudcomplab.ch
+    # UDP Port of the Graylog2 server (for UDP sources)
+    graylog_port=12201
     
-    The three variables $OS_USERNAME, $OS_PASSWORD and $OS_TENANT_NAME are the same that you can download within the openrc.sh file from OpenStack.
-    
-    This will list all the registered services with the possible parametrs. For DISCO, this is the service haas.
-    
-2. With the following command, a cluster can be created:
+It is also possible to send logs from within a SO instance running on openshift. A simple implementation is as follows in the top section of a so implementation:
 
-   ```
-   curl -v -X POST http://xxx.xxx.xxx.xxx:8888/haas/ -H 'Category: haas; scheme="http://schemas.cloudcomplab.ch/occi/sm#"; class="kind";' -H "X-User-Name: $OS_USERNAME" -H "X-Tenant-Name: $OS_TENANT_NAME" -H "X-Password: $OS_PASSWORD" -H "X-Region-Name: $OS_REGION_NAME" -H 'content-type: text/occi' -H 'X-OCCI-Attribute: icclab.haas.master.sshkeyname="<your SSH public key name>"'
-   ```
+    from sm.so.service_orchestrator import LOG
+    gray_handler = graypy.GELFHandler("log.cloudcomplab.ch",
+                                      12201,
+                                      localname=os.environ['OPENSHIFT_GEAR_DNS'])
+    LOG.addHandler(gray_handler)
 
-   Two additional headers are included in this command: one for the region where the cluster should be deployed and another for the parameters for the cluster setup. The command above contains the minimum of the required parameters which will setup a cluster.
-   
-   You can see one parameter which is absolutely necessary for each cluster: icclab.haas.master.sshkeyname tells DISCO which (already registered) SSH keyname should be inserted within the new cluster's master node.
-   
-   A successful deployment will be acknowledged with an 'OK' and a UUID which identifies the created cluster within DISCO. It is within the location field of the response. Remember this because it is the address which you will send the following requests to.
+This example is illustrated in the mcn_sample_runtime_so example of service available in the mcn_sample_so repo. Do not omit the localname parameter as otherwise all openshift instances will appear with the hostname master.ops.cloudcomplab.ch on Graylog.
 
-3. Though if you haven't taken note of the UUID, you can still retrieve it with the command
+## Authentication
+Authentication and access to the SM is mediated by OpenStack keystone. In order to make a service instantiation request
+against a SM the end user needs to supply:
 
-   ```
-   curl -v -X GET http://xxx.xxx.xxx.xxx:8888/haas/ -H 'Accept: text/occi' -H "X-User-Name: $OS_USERNAME" -H "X-Tenant-Name: $OS_TENANT_NAME" -H "X-Password: $OS_PASSWORD"
-   ```
-   
-   This will list all clusters which have been deployed for the given username / tenant on the given DISCO instance.
-   
-4. If you want to know the IP of your newly created cluster, issue the following HTTP command:
+ * tenant name: this should be provided through the `X-Auth-Token` HTTP header
+ * token: this should be provided through the `X-Tenant-Name` HTTP header. If no `X-Tenant-Name` is supplied the 
+ default of `admin` will be used (See [here](https://git.mobile-cloud-networking.eu/cloudcontroller/mcn_cc_sdk/blob/master/sdk/services.py#L86) for why).
 
-   ```
-   curl -v -X GET http://xxx.xxx.xxx.xxx:8888/haas/UUID -H 'Accept: text/occi' -H "X-Tenant-Name: $OS_TENANT_NAME" -H "X-User-Name: $OS_USERNAME" -H "X-Password: $OS_PASSWORD" -H "X-Region-Name: $OS_REGION_NAME"
-   ```
+### Generating a Keystone Token
+**IMPORTANT:** your user must be assigned `admin` permissions for the project they're part of.
 
-   Note: if the cluster hasn't been fully created by OpenStack yet, this command will return an error. Just try it again after a short time.
-   
-   Note 2: Don't forget to replace the UUID field with the actual ID returned by DISCO in the command before.
-   
-   As soon as the cluster creation has been finished on OpenStack's side, this command will return the IP address of the cluster's master node. It is in the 'externalIP' field.
-   
-5. As soon as you have the IP of the master node, you can login over SSH:
+For this to work you will need the keystone command line tools installed. They are installed if you followed the installation instructions above.
+and also your OpenStack credentials.
 
-   ```
-   ssh ubuntu@externalIP
-   ```
-   
-   Because the deployment on OpenStack is just a part of the cluster provisioning, your cluster most likely isn't ready yet for big data processing. But as soon as you have logged in, you can check the deployment status:
-   
-   ```
-   tail -f /home/ubuntu/deployment.log
-   ```
-   
-   As soon as the deployment has finished, it will tell so within the deployment.log file.
+To create a keystone token issue the following commands:
 
-6. If you would like to delete the cluster again, the following command will help you
+    $ keystone token-get
 
-    ```
-    curl -v -X DELETE http://xxx.xxx.xxx.xxx:8888/haas/UUID -H 'Category: haas; scheme="http://schemas.cloudcomplab.ch/occi/sm#"; class="kind";' -H 'content-type: text/occi' -H "X-User-Name: $OS_USERNAME" -H "X-Password: $OS_PASSWORD" -H "X-Tenant-Name: $OS_TENANT_NAME" -H "X-Region-Name: $OS_REGION_NAME"
-    ```
+## Configuration
 
-7. After this last step, you can check with the command at a previous step that the cluster is not registered within DISCO anymore and the resources are freed. You can also double check that information on OpenStack Horizon. (Orchestration -> Stacks)
+All configuration of the service manager is carried out through `etc/sm.cfg`. There are three sections to this
+configuration file.
+
+ * `general` - this configuration is used by the code under the namespace of mcn.sm.
+ * `service_manager` - this is configuration related to the service manager that you implement
+ * `service_manager_admin` - this section is related to the registration of the service with keystone
+ * `cloud_controller` - configuration related to the cloudcontroller
+
+There are two samples provided, one each for OpenShift 2 and OpenShift 3.
+Please see the configuration file `etc/sm.cfg` for further parameter descriptions.
+This service manager framework assumes that the bundle supplied will be deployed using git.
+
+### Service Provider Internal Parameters
+If the service provider needs to pass parameters to various stages of the instantiation process, this can be done by
+adding those parameters to a JSON file. There is an example of this in `etc/service_params.json`
+
+### Configuration of demo SO bundle
+
+The demo SO bundle comes from [here](https://github.com/icclab/hurtle_sample_so). You will have to clone it manually:
+
+	git glone https://github.com/icclab/hurtle_sample_so
+
+There are some support files that the SM and the CC rely upon. These support files must be stored under the root of
+your SO bundle in a folder named `support`.
+
+If you wish to run the example you will possibly have to update one of them.
+
+The `support/pre_start_python` file contains a variable that points to the OpenStack keystone service. For this demo, the URI value of `DESIGN_URI` should be set to your OpenStack keystone API e.g. `http://$KEYSTONE_HOST:5000/v2.0`.
+
+There is no further configuration needed for the bundle.
+
+### Cavaets
+
+ * Make sure that for the user running the SM process that the following line appears in `~/.ssh/config`
+
+        StrictHostKeyChecking no
+
+## Usage
+
+To see what services are available by the service provider you need to query the service registry.
+
+    $ curl -v -X GET http://localhost:8888/-/
+
+To create an instance of a service offered by the service provider (e.g. using the demo service manager).
+
+    $ curl -v -X POST http://localhost:8888/demo/ -H 'Category: demo; scheme="http://schemas.mobile-cloud-networking.eu/occi/sm#"; class="kind";' -H 'content-type: text/occi' -H 'x-tenant-name: YOUR_TENANT_NAME' -H 'x-auth-token: YOUR_KEYSTONE_TOKEN'
+
+This request, if successful, will return a service instance ID that can be used to request further details about the
+service instance.
+
+    $ curl -v -X GET http://localhost:8888/demo/59eb41f9-8cbc-4bbd-bb16-4101703d0e13 -H 'x-tenant-name: YOUR_TENANT_NAME' -H 'x-auth-token: YOUR_KEYSTONE_TOKEN'
+
+To dispose of the instance you can issue the following request.
+
+    $ curl -v -X DELETE http://localhost:8888/demo/59eb41f9-8cbc-4bbd-bb16-4101703d0e13 -H 'x-tenant-name: YOUR_TENANT_NAME' -H 'x-auth-token: YOUR_KEYSTONE_TOKEN'
+
+### Authentication
+To authentication you need to supply a tenant name and token. Do this by setting the following HTTP headers in your 
+request
+
+ * X-Tenant-Name
+ * X-Auth-Token
+
+## Dependency notes
+
+1. You must have the MCN SDK installed on the machine where you run your service manager. To do so, simply follow the installation instructions above.
+
+## Questions?
+
+Give edmo@zhaw.ch a mail
+
+## Supported by
+
+<div align="center" >
+<a href='http://blog.zhaw.ch/icclab'>
+<img src="https://raw.githubusercontent.com/icclab/hurtle/master/docs/figs/mcn_logo.png" title="mobile cloud networking" width=400px
+</a>
+</div>

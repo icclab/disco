@@ -14,7 +14,6 @@
 #    under the License.
 
 
-import re
 import json
 import os
 import requests
@@ -177,44 +176,26 @@ class MApplication(Application):
     def __call__(self, environ, response):
         token = environ.get('HTTP_X_AUTH_TOKEN', '')
 
-        # design_uri is needed for the case that no token was given
+        if token == '':
+            LOG.error('No X-Auth-Token header supplied.')
+            raise HTTPError(400, 'No X-Auth-Token header supplied.')
+
+        tenant = environ.get('HTTP_X_TENANT_NAME', '')
+
+        if tenant == '':
+            LOG.error('No X-Tenant-Name header supplied.')
+            raise HTTPError(400, 'No X-Tenant-Name header supplied.')
+
         design_uri = CONFIG.get('service_manager', 'design_uri', '')
         if design_uri == '':
                 LOG.fatal('No design_uri parameter supplied in sm.cfg')
                 raise Exception('No design_uri parameter supplied in sm.cfg')
-        tenantname = environ.get('HTTP_X_TENANT_NAME', '')
-        region = environ.get('HTTP_X_REGION_NAME','')
-        username = environ.get('HTTP_X_USER_NAME','')
-        password = environ.get('HTTP_X_PASSWORD','')
 
-        # for checking the authenticity
         auth = KeyStoneAuthService(design_uri)
+        if not auth.verify(token=token, tenant_name=tenant):
+            raise HTTPError(401, 'Token is not valid. You likely need an updated token.')
 
-        # get the token from username, tenant and region combination from HTTP
-        # headers
-        if token is '':
-            try:
-                # get all the required variables - as the tenant name has a
-                # special role, it's queried separately
-
-                kc = client.Client(auth_url=design_uri,
-                                   username=username,
-                                   password=password,
-                                   tenant_name=tenantname
-                                   )
-                environ['HTTP_X_AUTH_TOKEN'] = kc.auth_token
-                token = kc.auth_token
-            except:
-                raise Exception('Either no design uri, username, '
-                                'password, or tenant name respectively '
-                                'provided or the login didn\'t succeed')
-        else:
-            if not auth.verify(token=token, tenant_name=tenantname):
-                LOG.error('Token has probably expired')
-                raise HTTPError(401, 'Token is not valid. You likely need an updated token.')
-
-        # the arguments at the back will become the extras variable within the individual SM classes
-        return self._call_occi(environ, response, username=username, design_uri=design_uri, password=password, token=token, tenant_name=tenantname, registry=self.registry, region=region)
+        return self._call_occi(environ, response, token=token, tenant_name=tenant, registry=self.registry)
 
 
 class Service:

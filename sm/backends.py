@@ -17,37 +17,21 @@
 from occi.backend import KindBackend
 
 from sm.config import CONFIG
-manager = CONFIG.get('general', 'manager', default='so_manager')
+manager = 'disco' #CONFIG.get('general', 'manager', default='disco')
 
 # generic manager stuff
 from sm.managers.generic import ServiceParameters
 from sm.managers.generic import AsychExe
 
 # depending on config, we import a different manager and ensure consistent names
-if manager == 'so_manager':
-    from sm.managers.so_manager import InitSO as Init
-    from sm.managers.so_manager import ActivateSO as Activate
-    from sm.managers.so_manager import DeploySO as Deploy
-    from sm.managers.so_manager import ProvisionSO as Provision
-    from sm.managers.so_manager import RetrieveSO as Retrieve
-    from sm.managers.so_manager import UpdateSO as Update
-    from sm.managers.so_manager import DestroySO as Destroy
-elif manager == 'openbaton':
-    from sm.managers.openbaton_manager import Init
-    from sm.managers.openbaton_manager import Activate
-    from sm.managers.openbaton_manager import Deploy
-    from sm.managers.openbaton_manager import Provision
-    from sm.managers.openbaton_manager import Retrieve
-    from sm.managers.openbaton_manager import Update
-    from sm.managers.openbaton_manager import Destroy
-elif manager == 'openstack':
-    from sm.managers.openstack_so_manager import Init
-    from sm.managers.openstack_so_manager import Activate
-    from sm.managers.openstack_so_manager import Deploy
-    from sm.managers.openstack_so_manager import Provision
-    from sm.managers.openstack_so_manager import Retrieve
-    from sm.managers.openstack_so_manager import Update
-    from sm.managers.openstack_so_manager import Destroy
+if manager == 'disco':
+    from sm.managers.hurtledisco import Init
+    from sm.managers.hurtledisco import Activate
+    from sm.managers.hurtledisco import Deploy
+    from sm.managers.hurtledisco import Provision
+    from sm.managers.hurtledisco import Retrieve
+    from sm.managers.hurtledisco import Update
+    from sm.managers.hurtledisco import Destroy
 
 __author__ = 'andy'
 

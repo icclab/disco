@@ -17,11 +17,11 @@
 
 __author__ = 'andy'
 
-from sm.service import Service
-from sm.service import MApplication
-from sm import admin
-
 import thread
+
+from sm import admin
+from sm.service import MApplication
+from sm.service import Service
 
 
 def server():

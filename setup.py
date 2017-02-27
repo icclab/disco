@@ -14,7 +14,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-from setuptools import setup, find_packages
+from setuptools import setup
 
 setup(
     name='sm',
@@ -24,10 +24,10 @@ setup(
     author_email='edmo@zhaw.ch',
     url='http://blog.zhaw.ch/icclab',
     license='Apache 2.0',
-    packages=find_packages(exclude=["*.tests", "*.tests.*", "tests.*", "tests", "example", "etc"]),
+    packages=['sm', 'sm.so', 'sm.managers'],
     install_requires=[
         'pyssf',
-        'requests>=2.8.1',
+        'requests',
         'mako',
         'retrying',
         'tornado',
@@ -38,6 +38,7 @@ setup(
         'ecdsa',
         'jsonpickle',
         'python-keystoneclient',
-        'pymongo'],
+        'pymongo',
+	'flask'],
     scripts=['bin/service_manager']
 )
