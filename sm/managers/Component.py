@@ -282,6 +282,7 @@ class Component():
         python_files = self.get_files()
         # each registered file has to be evaluated
         for cur_file in python_files:
+            path = ""
             try:
 
                 path = "%s/%s" % (DiscoConfiguration.component_directory, self.fwname)
@@ -299,6 +300,7 @@ class Component():
                     ns[name] = cur_function[1]
             except Exception as e:
                 print(e.message)
+                print("in path "+path)
                 pass
         return self
 

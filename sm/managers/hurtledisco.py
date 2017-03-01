@@ -90,11 +90,11 @@ class Deploy(Task):
         """
         run me with nosetests --with-doctest file.py
 
-        >>> a = { 'first' : { 'all_rows' : { 'pass' : 'dog', 'number' : '1' }
+        >> > a = { 'first' : { 'all_rows' : { 'pass' : 'dog', 'number' : '1' }
         } }
-        >>> b = { 'first' : { 'all_rows' : { 'fail' : 'cat', 'number' : '5' }
+        >> > b = { 'first' : { 'all_rows' : { 'fail' : 'cat', 'number' : '5' }
         } }
-        >>> merge(b, a) == { 'first' : { 'all_rows' : { 'pass' : 'dog',
+        >> > merge(b, a) == { 'first' : { 'all_rows' : { 'pass' : 'dog',
         'fail' : 'cat', 'number' : '5' } } }
         True
         """
@@ -259,10 +259,18 @@ class Retrieve(Task):
                         output['output_value'] = ""
                     self.entity.attributes[output['output_key']] = output['output_value']
                 # self.entity.attributes['externalIP'] = stackinfo['external_ip']
+                import copy
+                current_stack = deployer.hc.stacks.get(                    self.entity.attributes['stackid'])
+                self.entity.attributes['stack_status'] = copy.deepcopy(                    current_stack.stack_status)
+
             except:
                 self.entity.attributes['external_ip'] = 'none'
+        else:
+            self.entity.attributes['disco_status'] = 'nothing here right now'
 
-        self.entity.attributes['disco_status'] = 'nothing here right now'
+        # this has to be done because Hurtle doesn't convert a multiline string into a valid JSON
+        if "ssh_private_key" in self.entity.attributes:
+            self.entity.attributes["ssh_private_key"] = self.entity.attributes["ssh_private_key"].replace("\n","\\n")
 
         return self.entity, self.extras
 
