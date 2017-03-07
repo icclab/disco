@@ -1,7 +1,5 @@
 import os
 
-from data.DiscoConfiguration import DiscoConfiguration as dc
-
 from Component import Component
 from Output import Output as FinalOutput
 

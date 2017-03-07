@@ -8,8 +8,6 @@ import logging
 import sys
 dir_path = os.path.dirname(os.path.realpath(__file__))
 sys.path.append("%s/data" %dir_path)
-# sys.path.append("/home/ubuntu/DISCO/sm/managers/data")
-from sm.managers.data.DiscoConfiguration import DiscoConfiguration
 
 class FileResolver(etree.Resolver):
     '''
@@ -282,14 +280,12 @@ class Component():
         python_files = self.get_files()
         # each registered file has to be evaluated
         for cur_file in python_files:
-            path = ""
             try:
 
-                path = "%s/%s" % (DiscoConfiguration.component_directory, self.fwname)
                 # only add path if not present yet - possible if multiple
                 # source files for the same component are iterated
-                if path not in sys.path:
-                    sys.path.append(path)
+                if self.path not in sys.path:
+                    sys.path.append(self.path)
                 module_name = cur_file[0:-3]
                 cur_mod = __import__(module_name)
                 new_functions = inspect.getmembers(cur_mod, inspect.isfunction)
@@ -300,7 +296,7 @@ class Component():
                     ns[name] = cur_function[1]
             except Exception as e:
                 print(e.message)
-                print("in path "+path)
+                print("in path "+self.path)
                 pass
         return self
 

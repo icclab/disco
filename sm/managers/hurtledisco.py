@@ -8,7 +8,6 @@ from sm.log import LOG
 from sm.managers.Disco import Disco
 from sm.managers.generic import Task
 from sm.config import CONFIG
-from sm.managers.data.DiscoConfiguration import DiscoConfiguration
 
 __author__ = 'balazs'
 
@@ -248,7 +247,7 @@ class Retrieve(Task):
 
         framework_directory = CONFIG.get('disco','framework_directory','')
 
-        disco_config = {"deployer": deployer, "framework_directory": framework_directory, "root_component": DiscoConfiguration.root_component, "root_component_state": DiscoConfiguration.root_component_state}
+        disco_config = {"deployer": deployer, "framework_directory": framework_directory, "root_component": "heat", "root_component_state": "end"}
         discoinst = Disco(disco_config, self.entity.attributes)
 
         if self.entity.attributes['stackid'] is not "":
