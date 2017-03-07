@@ -3,11 +3,8 @@ from lxml import etree
 from xml.etree.ElementTree import ParseError as ParseError
 # inspect is needed to determine the functions in dynamically included Python files
 import inspect
-# import sm.log as log
 import logging
 import sys
-dir_path = os.path.dirname(os.path.realpath(__file__))
-sys.path.append("%s/data" %dir_path)
 
 class FileResolver(etree.Resolver):
     '''
