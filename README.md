@@ -1,7 +1,8 @@
-<img src="https://blog.zhaw.ch/icclab/files/2017/02/disco_logo.jpg" alt="DISCO" width="620" />
+<a href="http://icclab.github.io/disco" target="_blank"><img align="middle" src="https://blog.zhaw.ch/icclab/files/2017/02/disco_logo.jpg" width="400" /></a>
+
 # DISCO
 
-<a href="https://blog.zhaw.ch/icclab/files/2017/02/disco_architecture.png" target="_blank"><img src="https://blog.zhaw.ch/icclab/files/2017/02/disco_architecture.png" alt="Architecture" width="620"></img></a>
+<a href="https://blog.zhaw.ch/icclab/files/2017/02/disco_architecture.png" target="_blank"><img src="https://blog.zhaw.ch/icclab/files/2017/02/disco_architecture.png" alt="Architecture" width="620" /></a>
 
 ## Introduction
 
@@ -9,7 +10,7 @@ DISCO stands for DIStributed COmputing. It provides the user with the ability to
 
 ## Running DISCO backend
 
-In the following section, I will explain how to configure and use the server part of DISCO, taking care of the user requests and forwarding the required commands to the cloud computing software.
+In the following section, I will explain how to configure and use the server part of DISCO, taking care of the user requests and forwarding the required commands to the cloud computing software. Keep in mind: the description here was written on an Ubuntu system and the commands might be different on your system if you are not using Ubuntu.
 
 ### Overview over the system
 
@@ -32,19 +33,19 @@ But before we get to that point, let's install DISCO backend. This short guide w
     
     ```
     sudo apt-get update
-    sudo apt-get install -y git python-pip libffi-dev libcurl4-openssl-dev python-dev
+    sudo apt-get install -y git python-pip libffi-dev libcurl4-openssl-dev python-dev python-lxml
     ```
 
-2. Now, an SDK has to be installed which provides DISCO with some important commands. In order to install this SDK, two Python packages have to be upgraded:
+2. Now, an SDK has to be installed which provides DISCO with some important commands. In order to install this SDK, some packages might have to be upgraded:
 
     ```
-    sudo pip install requests --upgrade
-    sudo pip install setuptools --upgrade
+    sudo pip install --upgrade <package name>
     ```
     
 3. Let's install the SDK now:
     
     ```
+    cd
     git clone https://github.com/icclab/hurtle_cc_sdk.git
     cd hurtle_cc_sdk
     sudo python setup.py install
@@ -53,6 +54,7 @@ But before we get to that point, let's install DISCO backend. This short guide w
 4. At this point, DISCO can be installed.
 
     ```
+    cd
     git clone https://github.com/icclab/disco.git
     cd disco
     sudo python setup.py install
@@ -111,7 +113,7 @@ In order to have a distributed computing cluster set up, you will need to issue 
       'icclab.disco.dependencies.inject="<components to deploy as a Python dictionary>"'
    ```
 
-   There is one very long header, X-OCCI-Attribute, which contains all the parameters for the cluster setup. Each parameter starts with the string "icclab.disco.". A short description of each parameter is provided in the command above.
+   There is one very long header, X-OCCI-Attribute, which contains all the parameters for the cluster setup. Each parameter starts with the string "icclab.disco.". A short description of each parameter is provided in the command above. A more extensive description can be found in the wiki.
    
    A successful deployment will be acknowledged with an 'OK' and a UUID which identifies the created cluster within DISCO. It is within the location field of the response. Remember this because it is the address which you will send the following requests to.
 
