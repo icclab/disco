@@ -81,7 +81,10 @@ In order to have a distributed computing cluster set up, you will need to issue 
 1. You can list all the available services of a specific DISCO SM with the command
 
     ```
-    curl -v -X GET http://xxx.xxx.xxx.xxx:8888/-/ -H 'Accept: text/occi' -H "X-User-Name: $OS_USERNAME" -H "X-Password: $OS_PASSWORD" -H "X-Tenant-Name: $OS_TENANT_NAME"
+    curl -v -X GET http://<DISCO IP>:8888/-/ \
+    -H 'Accept: text/occi' \
+    -H "X-Tenant-Name: $OS_TENANT_NAME" \
+    -H "X-Auth-Token: $TOKEN"
     ```
     
     The three variables $OS_USERNAME, $OS_PASSWORD and $OS_TENANT_NAME are the same that you can download within the openrc.sh file from OpenStack. How that is done? Just go back to Horizon -> Compute -> Access & Security -> API Access. Here, you can download this access file.
@@ -91,7 +94,7 @@ In order to have a distributed computing cluster set up, you will need to issue 
 2. With the following command, a cluster can be created:
 
    ```
-   curl -v -X POST http://127.0.0.1:8888/disco/ \
+   curl -v -X POST http://<DISCO IP>:8888/disco/ \
    -H 'Category: disco; scheme="http://schemas.cloudcomplab.ch/occi/sm#"; class="kind";' \
    -H 'Content-type: text/occi' \
    -H 'X-Tenant-Name: $OS_TENANT_NAME' \
@@ -120,7 +123,10 @@ In order to have a distributed computing cluster set up, you will need to issue 
 3. However, if you haven't taken note of the UUID, you can still retrieve it with the command
 
    ```
-   curl -v -X GET http://xxx.xxx.xxx.xxx:8888/disco/ -H 'Accept: text/occi' -H "X-User-Name: $OS_USERNAME" -H "X-Tenant-Name: $OS_TENANT_NAME" -H "X-Password: $OS_PASSWORD"
+   curl -v -X GET http://<DISCO IP>:8888/disco/ \
+   -H 'Accept: text/occi' \
+   -H "X-Tenant-Name: $OS_TENANT_NAME" \
+   -H "X-Auth-Token: $TOKEN"
    ```
    
    This will list all clusters which have been deployed for the given username / tenant on the given DISCO instance.
@@ -128,7 +134,10 @@ In order to have a distributed computing cluster set up, you will need to issue 
 4. If you want to know the IP of your newly created cluster, issue the following HTTP command:
 
    ```
-   curl -v -X GET http://xxx.xxx.xxx.xxx:8888/disco/UUID -H 'Accept: text/occi' -H "X-Tenant-Name: $OS_TENANT_NAME" -H "X-User-Name: $OS_USERNAME" -H "X-Password: $OS_PASSWORD" -H "X-Region-Name: $OS_REGION_NAME"
+   curl -v -X GET http://<DISCO IP>:8888/disco/$UUID \
+   -H 'Accept: text/occi' \
+   -H "X-Tenant-Name: $OS_TENANT_NAME" \
+   -H "X-Auth-Token: $TOKEN"
    ```
 
    Note: if the cluster hasn't been fully created by OpenStack yet, this command will return an error. Just try it again after a short time.
@@ -161,7 +170,11 @@ In order to have a distributed computing cluster set up, you will need to issue 
 6. If you would like to delete the cluster again, the following command will help you
 
     ```
-    curl -v -X DELETE http://127.0.0.1:8888/disco/$UUID -H 'Category: disco; scheme="http://schemas.cloudcomplab.ch/occi/sm#"; class="kind";' -H 'Content-type: text/occi' -H 'X-Tenant-Name: $OS_TENANT_NAME' -H 'X-Region-Name: $OS_REGION_NAME' -H 'X-User-Name: $OS_USERNAME' -H 'X-Password: $OS_PASSWORD' -H "X-Auth-Token: $TOKEN"
+    curl -v -X DELETE http://<DISCO IP>:8888/disco/$UUID \
+    -H 'Category: disco; scheme="http://schemas.cloudcomplab.ch/occi/sm#"; class="kind";' \
+    -H 'Content-type: text/occi' \
+    -H 'X-Tenant-Name: $OS_TENANT_NAME' \
+    -H "X-Auth-Token: $TOKEN"
     ```
 
 7. After this last step, you can check with the command at a previous step that the cluster is not registered within DISCO anymore and the resources are freed. You can also double check that information on OpenStack Horizon. (Orchestration -> Stacks)
