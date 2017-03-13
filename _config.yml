@@ -1,0 +1,21 @@
+# Dependencies
+markdown:         redcarpet
+highlighter:      pygments
+
+# Permalinks
+permalink:        pretty
+#relative_permalinks: true
+
+# Setup
+title:            DISCO
+tagline:          'Distributed Computing as a Service'
+description:      '...Distributed Computing in the Cloud – automated'
+url:              http://icclab.github.io/disco
+baseurl:          /
+
+jekyll-paginate:         5
+
+github:
+  repodashboard:         https://github.com/icclab/disco-dashboard
+  repobackend:           https://github.com/icclab/disco
+
