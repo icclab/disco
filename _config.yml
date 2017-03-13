@@ -10,7 +10,7 @@ title:            DISCO
 tagline:          'Distributed Computing as a Service'
 description:      '...Distributed Computing in the Cloud – automated'
 url:              http://icclab.github.io/disco
-baseurl:          /
+baseurl:          https://icclab.github.io/disco/
 
 jekyll-paginate:         5
 
