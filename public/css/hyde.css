@@ -62,7 +62,7 @@ html {
   padding: 2rem 1rem;
   /*color: rgba(255,255,255,.5);*/
   background-color: #202020;
-  background-image: url({{ site.baseurl }}public/pictures/bg.jpg);
+  background-image: url(bg.jpg);
 }
 @media (min-width: 48em) {
   .sidebar {
