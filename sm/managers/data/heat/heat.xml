@@ -85,7 +85,9 @@ Author: Balazs Meszaros
   hadoop_ip:
     type: OS::Neutron::FloatingIP
     properties:
-      floating_network: "public"
+      floating_network: "]]></outputtemplate>
+
+<outputtemplateend><![CDATA["
 
 
   disco_router:
@@ -131,7 +133,7 @@ outputs:
 
   ssh_private_key:
     description: The private key of the keypair.
-    value: { get_attr: [sshkey, private_key] }]]></outputtemplate>
+    value: { get_attr: [sshkey, private_key] }]]></outputtemplateend>
 
   <parameterssection><![CDATA[heat_template_version: 2014-10-16
 

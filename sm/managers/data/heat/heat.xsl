@@ -123,6 +123,8 @@ Author: Balazs Meszaros
 </xsl:text>
 			<xsl:call-template name="createslaves" />
                 <xsl:value-of select="heat:replace(/discocomponent/outputtemplate/text(),$parameterreplace)" />
+                <xsl:value-of select="/discocomponent/properties/property[@name='externalnetworkname']/@value"/>
+                <xsl:value-of select="heat:replace(/discocomponent/outputtemplateend/text(),$parameterreplace)" />
             </xsl:copy>
         </xsl:if>
 
