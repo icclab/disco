@@ -59,6 +59,12 @@ su ubuntu -c "parallel-ssh -t 2000 -h /home/ubuntu/hosts.lst \"tar -xzf /usr/lib
 #su ubuntu -c "parallel-ssh -t 2000 -h ~/hosts.lst \"mv spark-2.0.0-bin-hadoop2.7 /usr/lib/spark/\""
 su ubuntu -c "parallel-ssh -t 2000 -h ~/hosts.lst \"mv spark-2.0.0-bin-hadoop2.7 /usr/lib/spark\""
 su ubuntu -c "parallel-ssh -t 2000 -h ~/hosts.lst \"ln -s /usr/lib/spark/spark-2.0.0-bin-hadoop2.7/ /usr/lib/spark/spark\""
+mkdir /var/log/sparkhistory
+chown ubuntu:ubuntu /var/log/sparkhistory
+cat - > /usr/lib/spark/spark/conf/spark-defaults.conf << 'EOF'
+spark.history.fs.logDirectory	/var/log/sparkhistory
+EOF
+
 cat - > /usr/lib/spark/spark/conf/slaves << 'EOF'
 $mastername$
 ]]></sparkstart>
@@ -67,6 +73,10 @@ $mastername$
 	<sparkend><![CDATA[EOF
 su ubuntu -c "/usr/lib/spark/spark/sbin/start-master.sh"
 su ubuntu -c "/usr/lib/spark/spark/sbin/start-slaves.sh"
+
+# start Spark History Server
+su ubuntu -c "/usr/lib/spark/spark/sbin/start-history-server.sh"
+
 deploymentLog "Spark installed and started"
 
 ]]></sparkend>
