@@ -32,6 +32,7 @@ Author: Balazs Meszaros
 			<variable name="slavename" />
 		</dependency>
 		<dependency name="shell" state="start" />
+		<dependency name="hadoop" />
 	</dependencies>
 
 	<functions>
@@ -47,10 +48,8 @@ deploymentLog "downloading Apache Spark to master node"
 su ubuntu -c "sudo mkdir /home/ubuntu/spark"
 cd /home/ubuntu/spark
 chown ubuntu:ubuntu /home/ubuntu/spark
-#su ubuntu -c "wget http://d3kbcqa49mib13.cloudfront.net/spark-2.0.0-bin-hadoop2.7.tgz"
 su ubuntu -c "wget http://reposerver/spark/spark-2.0.0-bin-hadoop2.7.tgz"
 
-#su ubuntu -c "tar -xzf /home/ubuntu/spark/spark-2.0.0-bin-hadoop2.7.tgz"
 su ubuntu -c "parallel-ssh -t 2000 -h /home/ubuntu/hosts.lst \"sudo sh -c \\\"echo \\\\\\\"SPARK_HOME=\\\\\\\\\\\\\\\"/usr/lib/spark/spark\\\\\\\\\\\\\\\"\\\\nJAVA_HOME=\\\\\\\\\\\\\\\"/usr/lib/java/jdk\\\\\\\\\\\\\\\"\\\\\\\" >> \\\/etc\\\/environment\\\"\""
 su ubuntu -c "parallel-ssh -t 2000 -h ~/hosts.lst \"sudo mkdir /usr/lib/spark\""
 su ubuntu -c "parallel-ssh -t 2000 -h ~/hosts.lst \"sudo chown ubuntu:ubuntu /usr/lib/spark/\""
@@ -59,11 +58,20 @@ su ubuntu -c "parallel-ssh -t 2000 -h /home/ubuntu/hosts.lst \"tar -xzf /usr/lib
 #su ubuntu -c "parallel-ssh -t 2000 -h ~/hosts.lst \"mv spark-2.0.0-bin-hadoop2.7 /usr/lib/spark/\""
 su ubuntu -c "parallel-ssh -t 2000 -h ~/hosts.lst \"mv spark-2.0.0-bin-hadoop2.7 /usr/lib/spark\""
 su ubuntu -c "parallel-ssh -t 2000 -h ~/hosts.lst \"ln -s /usr/lib/spark/spark-2.0.0-bin-hadoop2.7/ /usr/lib/spark/spark\""
-mkdir /var/log/sparkhistory
-chown ubuntu:ubuntu /var/log/sparkhistory
-cat - > /usr/lib/spark/spark/conf/spark-defaults.conf << 'EOF'
-spark.history.fs.logDirectory	/var/log/sparkhistory
+
+su ubuntu -c "/usr/lib/hadoop/hadoop/bin/hdfs dfs -mkdir /sparkoutput"
+
+# create default config file for Spark
+cat - > /home/ubuntu/spark-default.conf << 'EOF'
+spark.eventLog.enabled	true
+spark.eventLog.dir hdfs://$mastername$:54310/sparkoutput
+spark.history.ui.port 18080
+spark.yarn.historyServer.address $mastername$:18080
+spark.history.provider org.apache.spark.deploy.history.FsHistoryProvider
+spark.history.fs.logDirectory hdfs://$mastername$:54310/sparkoutput
 EOF
+
+su ubuntu -c "parallel-scp -h ~/hosts.lst /home/ubuntu/spark-default.conf /usr/lib/spark/spark/conf/spark-defaults.conf"
 
 cat - > /usr/lib/spark/spark/conf/slaves << 'EOF'
 $mastername$
@@ -71,6 +79,7 @@ $mastername$
 
 
 	<sparkend><![CDATA[EOF
+
 su ubuntu -c "/usr/lib/spark/spark/sbin/start-master.sh"
 su ubuntu -c "/usr/lib/spark/spark/sbin/start-slaves.sh"
 

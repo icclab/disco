@@ -21,7 +21,6 @@ Author: Balazs Meszaros
     <properties>
         <!-- these properties can be set over HTTP parameters as well; they will be inserted automatically -->
         <property name="staticoutput" value="true" />
-        <property name="included" value="false" />
 		<property name="outputtype" value="append" />
     </properties>
 

@@ -117,9 +117,9 @@ Author: Balazs Meszaros
                 <!-- insert slaves and Heat parameters for replacing here at this point -->
                 <xsl:text>          params:
 </xsl:text><xsl:call-template name="slavestring" />
-<xsl:text>
-            $sshprivatekey$: { get_attr: [sshkey, private_key] }
+<xsl:text>            $sshprivatekey$: { get_attr: [sshkey, private_key] }
             $sshpublickey$: { get_attr: [sshkey, public_key] }
+
 </xsl:text>
 			<xsl:call-template name="createslaves" />
                 <xsl:value-of select="heat:replace(/discocomponent/outputtemplate/text(),$parameterreplace)" />
