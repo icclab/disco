@@ -335,7 +335,10 @@ class Component():
         static_output = self.get_property_value('staticoutput')
         if static_output is not None:
             if static_output.lower()=='true':
-                cur_output = self.xml.xpath("/discocomponent/output/text()")
+                cur_output = self.xml.xpath(
+                        "/discocomponent/output[@state='%s']/text()" % self.xml.xpath("/discocomponent/properties/property[@name='state']")[0].attrib['value'])
+                if len(cur_output)==0:
+                    cur_output = self.xml.xpath("/discocomponent/output/text()")
                 self.update_dependency_dictionary()
                 try:
                     return ''.join(str(elem) for elem in cur_output)

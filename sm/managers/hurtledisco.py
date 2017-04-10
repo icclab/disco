@@ -166,11 +166,16 @@ class Deploy(Task):
                     # dependencies have to be injected into shell (state: end) component as that one provides direct access to bash
                     # build dependency dictionary:
                     deps = {}
-                    for dep in dependencies:
-                        deps[dep] = {"default":{}}
+                    for dep_name,dep_state in dependencies.items():
+                        if dep_state=="":
+                            dep_state="default"
+                        deps[dep_name] = {dep_state:{}}
                     discoinst.inject_dependency("shell", {"end": deps})
             except Exception as e:
                 self.entity.attributes['disco_status'] = 'dependency injection went wrong: %s' % e.message
+                self.entity.attributes['status'] = "deployment error: exception at the included dependencies - please refer to manual"
+                self.entity.attributes['stackid'] = ""
+                return self.entity, self.extras
 
             # dependencies have to be resolved before property injection as the properties will require those same components
             discoinst.resolve_dependencies()
