@@ -86,6 +86,8 @@ su ubuntu -c "/usr/lib/spark/spark/sbin/start-slaves.sh"
 # start Spark History Server
 su ubuntu -c "/usr/lib/spark/spark/sbin/start-history-server.sh"
 
+echo 'export PATH=$PATH:/usr/lib/spark/spark/bin' >> /etc/bash.bashrc
+
 deploymentLog "Spark installed and started"
 
 ]]></sparkend>

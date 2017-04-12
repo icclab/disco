@@ -1,5 +1,6 @@
 <xsl:stylesheet version="1.0"
     xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
+    xmlns:heat="heat.xsl"
     xmlns:hadoop="hadoop.xsl">
 <!--
 Copyright (c) 2017. Zuercher Hochschule fuer Angewandte Wissenschaften
@@ -27,6 +28,38 @@ Author: Balazs Meszaros
     </xsl:template>
 
 
+
+<!--not used-->
+
+    <xsl:template name="replace-string">
+		    <xsl:param name="text"/>
+		    <xsl:param name="replace"/>
+		    <xsl:param name="with"/>
+		    <xsl:choose>
+		      <xsl:when test="contains($text,$replace)">
+		        <xsl:value-of select="substring-before($text,$replace)"/>
+		        <xsl:value-of select="$with"/>
+        		<xsl:call-template name="replace-string">
+		          <xsl:with-param name="text" select="substring-after($text,$replace)"/>
+		          <xsl:with-param name="replace" select="$replace"/>
+		          <xsl:with-param name="with" select="$with"/>
+		        </xsl:call-template>
+		        </xsl:when>
+		      <xsl:otherwise>
+		        <xsl:value-of select="$text"/>
+		      </xsl:otherwise>
+		    </xsl:choose>
+		  </xsl:template>
+
+
+
+    <xsl:variable name="parameterreplace">
+            <parameter string="$replicationfactor$" replace="{/discocomponent/dependencies/dependency[@name='heat'][@state='start']/variable[@name='slavecount']/text()}" />
+        </xsl:variable>
+
+
+
+
          <xsl:template name="slavesfile">
            <xsl:param name="var" select="/discocomponent/dependencies/dependency[@name='heat'][@state='start']/variable[@name='slavecount']/text()"/>
            <xsl:choose>
@@ -43,10 +76,10 @@ Author: Balazs Meszaros
 
     <xsl:template match="/discocomponent/output">
         <xsl:copy>
-            <xsl:value-of select="/discocomponent/globaloutput/text()" />
-            <xsl:value-of select="/discocomponent/hadoopstart/text()" />
+            <xsl:value-of select="heat:replace(/discocomponent/globaloutput/text(),$parameterreplace)" />
+            <xsl:value-of select="heat:replace(/discocomponent/hadoopstart/text(),$parameterreplace)" />
             <xsl:call-template name="slavesfile" />
-            <xsl:value-of select="/discocomponent/hadoopend/text()" />
+            <xsl:value-of select="heat:replace(/discocomponent/hadoopend/text(),$parameterreplace)" />
         </xsl:copy>
     </xsl:template>
 </xsl:stylesheet>
