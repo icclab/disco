@@ -48,11 +48,10 @@ deploymentLog "now, installing zeppelin"
 mkdir /usr/lib/zeppelin
 chown ubuntu:ubuntu /usr/lib/zeppelin/
 cd /usr/lib/zeppelin/
-#su ubuntu -c "wget http://mirror.switch.ch/mirror/apache/dist/zeppelin/zeppelin-0.6.1/zeppelin-0.6.1-bin-all.tgz"
-su ubuntu -c "wget http://reposerver/zeppelin/zeppelin-0.6.1-bin-all.tgz"
-su ubuntu -c "tar -xvzf /usr/lib/zeppelin/zeppelin-0.6.1-bin-all.tgz"
-su ubuntu -c "mkdir -p /usr/lib/zeppelin/zeppelin-0.6.1-bin-all/{logs,run}"
-su ubuntu -c "ln -s /usr/lib/zeppelin/zeppelin-0.6.1-bin-all /usr/lib/zeppelin/zeppelin"
+su ubuntu -c "wget http://reposerver/zeppelin/zeppelin-0.7.1-bin-all.tgz"
+su ubuntu -c "tar -xvzf /usr/lib/zeppelin/zeppelin-0.7.1-bin-all.tgz"
+su ubuntu -c "mkdir -p /usr/lib/zeppelin/zeppelin-0.7.1-bin-all.tgz/{logs,run}"
+su ubuntu -c "ln -s /usr/lib/zeppelin/zeppelin-0.7.1-bin-all /usr/lib/zeppelin/zeppelin"
 # port has to be changed to 8070 as 8080 is Spark's standard Web UI port
 su ubuntu -c "cat /usr/lib/zeppelin/zeppelin/conf/zeppelin-site.xml.template | sed \"s/8080/8070/\" > /usr/lib/zeppelin/zeppelin/conf/zeppelin-site.xml"
 cat - > /usr/lib/zeppelin/zeppelin/conf/zeppelin-env.sh << 'EOF'
