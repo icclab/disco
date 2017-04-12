@@ -54,7 +54,7 @@ Author: Balazs Meszaros
 
 
     <xsl:variable name="parameterreplace">
-            <parameter string="$replicationfactor$" replace="{/discocomponent/dependencies/dependency[@name='heat'][@state='start']/variable[@name='slavecount']/text()}" />
+            <parameter string="$replicationfactor$" replace="3" />
         </xsl:variable>
 
 
