@@ -53,13 +53,10 @@ install:
 # instead of installing jupyter and its dependencies over public apt-get and
 # pip repositories, the sources and packages will be downloaded from a private
 # repository server
-cd /home/ubuntu
-su ubuntu -c "wget http://reposerver/jupyter/jupyter.tar.gz"
-su ubuntu -c "tar -xzf /home/ubuntu/jupyter.tar.gz"
-
-dpkg -i /home/ubuntu/jupyter/pythonpip/*
-pip install --no-deps /home/ubuntu/jupyter/pipjupyter/six-1.10.0-py2.py3-none-any.whl
-pip install --no-deps /home/ubuntu/jupyter/pipjupyter/*
+su ubuntu -c "mkdir /home/ubuntu/jupyter"
+cd /home/ubuntu/jupyter
+su ubuntu -c "wget http://reposerver/jupyter/jupyter-virtenv.tar.gz"
+su ubuntu -c "tar -xzf /home/ubuntu/jupyter/jupyter-virtenv.tar.gz"
 
 # create jupyter_notebook_config.py:
 su ubuntu -c "mkdir /home/ubuntu/.jupyter"
@@ -94,7 +91,10 @@ c.NotebookApp.webapp_settings['headers'] = headers
 c.NotebookApp.token = u''
 EOF
 chown ubuntu:ubuntu /home/ubuntu/.jupyter/jupyter_notebook_config.py
-su ubuntu -c "jupyter-notebook &"
+
+cd jupyter
+su ubuntu -c "sh -c '. bin/activate;jupyter notebook' &"
+
 deploymentLog "jupyter ready"
 # jupyter is installed and running
 ]]>
