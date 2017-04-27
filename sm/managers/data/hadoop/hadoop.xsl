@@ -28,8 +28,37 @@ Author: Balazs Meszaros
     </xsl:template>
 
 
+   <xsl:param name="vcpunumber" select="/discocomponent/dependencies/dependency[@name='parameters']/variable[@name='vcpunumber']/text()"/>
+   <xsl:param name="memorysize" select="/discocomponent/dependencies/dependency[@name='parameters']/variable[@name='memorysize']/text()"/>
 
-<!--not used-->
+    <xsl:variable name="rampercontainer" select="hadoop:rampercontainer($memorysize,$vcpunumber)" />
+    <xsl:variable name="containercount" select="hadoop:containercount($memorysize,$vcpunumber)" />
+
+    <!--the following configuration values have been taken from-->
+    <!--https://docs.hortonworks.com/HDPDocuments/HDP2/HDP-2.3.4/bk_installing_manually_book/content/determine-hdp-memory-config.html-->
+
+    <!--Configuration File		Configuration Setting					Value Calculation-->
+    <!--yarn-site.xml			yarn.nodemanager.resource.memory-mb		= containers * RAM-per-container-->
+    <!--yarn-site.xml			yarn.scheduler.minimum-allocation-mb	= RAM-per-container-->
+    <!--yarn-site.xml			yarn.scheduler.maximum-allocation-mb	= containers * RAM-per-container-->
+    <!--mapred-site.xml			mapreduce.map.memory.mb					= RAM-per-container-->
+    <!--mapred-site.xml			mapreduce.reduce.memory.mb				= 2 * RAM-per-container-->
+    <!--mapred-site.xml			mapreduce.map.java.opts					= 0.8 * RAM-per-container-->
+    <!--mapred-site.xml			mapreduce.reduce.java.opts				= 0.8 * 2 * RAM-per-container-->
+    <!--mapred-site.xml			yarn.app.mapreduce.am.resource.mb		= 2 * RAM-per-container-->
+    <!--mapred-site.xml			yarn.app.mapreduce.am.command-opts		= 0.8 * 2 * RAM-per-container-->
+
+    <xsl:variable name="memorymb" select="$rampercontainer*$containercount"/>
+    <xsl:variable name="minallocationmb" select="$rampercontainer"/>
+    <xsl:variable name="maxallocationmb" select="$rampercontainer*$containercount"/>
+    <xsl:variable name="mapmemorymb" select="$rampercontainer"/>
+    <xsl:variable name="reducememorymb" select="2*$rampercontainer"/>
+    <xsl:variable name="mapjavaopts" select="floor(0.8*$rampercontainer)"/>
+    <xsl:variable name="reducejavaopts" select="floor(1.6*$rampercontainer)"/>
+    <xsl:variable name="resourcemb" select="2*$rampercontainer"/>
+    <xsl:variable name="commandopts" select="floor(0.8*$rampercontainer)"/>
+
+
 
     <xsl:template name="replace-string">
 		    <xsl:param name="text"/>
@@ -53,8 +82,17 @@ Author: Balazs Meszaros
 
 
 
-    <xsl:variable name="parameterreplace">
+        <xsl:variable name="parameterreplace">
             <parameter string="$replicationfactor$" replace="3" />
+            <parameter string="$memorymb$" replace="{$memorymb}" />
+            <parameter string="$minallocationmb$" replace="{$minallocationmb}" />
+            <parameter string="$maxallocationmb$" replace="{$maxallocationmb}" />
+            <parameter string="$mapmemorymb$" replace="{$mapmemorymb}" />
+            <parameter string="$reducememorymb$" replace="{$reducememorymb}" />
+            <parameter string="$mapjavaopts$" replace="{$mapjavaopts}" />
+            <parameter string="$reducejavaopts$" replace="{$reducejavaopts}" />
+            <parameter string="$resourcemb$" replace="{$resourcemb}" />
+            <parameter string="$commandopts$" replace="{$commandopts}" />
         </xsl:variable>
 
 

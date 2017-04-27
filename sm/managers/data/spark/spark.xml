@@ -63,6 +63,7 @@ su ubuntu -c "/usr/lib/hadoop/hadoop/bin/hdfs dfs -mkdir /sparkoutput"
 
 # create default config file for Spark
 cat - > /home/ubuntu/spark-default.conf << 'EOF'
+spark.master    yarn
 spark.eventLog.enabled	true
 spark.eventLog.dir hdfs://$mastername$:54310/sparkoutput
 spark.history.ui.port 18080
@@ -73,8 +74,8 @@ EOF
 
 su ubuntu -c "parallel-scp -h ~/hosts.lst /home/ubuntu/spark-default.conf /usr/lib/spark/spark/conf/spark-defaults.conf"
 
+# add $mastername$ to the following file for starting a worker on the master node
 cat - > /usr/lib/spark/spark/conf/slaves << 'EOF'
-$mastername$
 ]]></sparkstart>
 
 
@@ -87,6 +88,7 @@ su ubuntu -c "/usr/lib/spark/spark/sbin/start-slaves.sh"
 su ubuntu -c "/usr/lib/spark/spark/sbin/start-history-server.sh"
 
 echo 'export PATH=$PATH:/usr/lib/spark/spark/bin' >> /etc/bash.bashrc
+echo 'export HADOOP_CONF_DIR=/etc/hadoop' >> /etc/bash.bashrc
 
 deploymentLog "Spark installed and started"
 

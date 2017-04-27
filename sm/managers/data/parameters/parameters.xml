@@ -3,7 +3,13 @@
     <properties>
         <!-- these properties can be set over HTTP parameters as well; they will be inserted automatically -->
         <property name="staticoutput" value="true" />
-		<property name="outputtype" value="replace" />
+		<property name="outputtype" value="append" />
+
+        <property name="flavorname" />
+        <property name="memorysize" />
+        <property name="disksize" />
+        <property name="vcpunumber" />
+        <property name="networkname" />
 
     </properties>
 

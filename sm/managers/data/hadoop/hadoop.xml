@@ -33,9 +33,15 @@ Author: Balazs Meszaros
 			<variable name="slavename" />
 		</dependency>
 		<dependency name="shell" state="start" />
+		<dependency name="parameters">
+			<variable name="vcpunumber" />
+			<variable name="memorysize" />
+		</dependency>
 	</dependencies>
 
+
 	<functions>
+        <file path="hadoophelpers.py" />
 	</functions>
 
 	<globaloutput />
@@ -215,22 +221,22 @@ limitations under the License. See accompanying LICENSE file.
 
 <property>
   <name>mapreduce.map.java.opts</name>
-  <value>-Xmx819m</value>
+  <value>-Xmx$mapjavaopts$m</value>
 </property>
 
 <property>
   <name>mapreduce.reduce.java.opts</name>
-  <value>-Xmx1638m</value>
+  <value>-Xmx$reducejavaopts$m</value>
 </property>
 
 <property>
   <name>mapreduce.map.memory.mb</name>
-  <value>1024</value>
+  <value>$mapmemorymb$</value>
 </property>
 
 <property>
   <name>mapreduce.reduce.memory.mb</name>
-  <value>2048</value>
+  <value>$reducememorymb$</value>
 </property>
 
 
@@ -248,27 +254,27 @@ limitations under the License. See accompanying LICENSE file.
 
 <property>
   <name>yarn.scheduler.minimum-allocation-mb</name>
-  <value>1024</value>
+  <value>$minallocationmb$</value>
 </property>
 
 <property>
   <name>yarn.scheduler.maximum-allocation-mb</name>
-  <value>2048</value>
+  <value>$maxallocationmb$</value>
 </property>
 
 <property>
   <name>yarn.nodemanager.resource.memory-mb</name>
-  <value>2048</value>
+  <value>$memorymb$</value>
 </property>
 
 <property>
   <name>yarn.app.mapreduce.am.resource.mb</name>
-  <value>2048</value>
+  <value>$resourcemb$</value>
 </property>
 
 <property>
   <name>yarn.app.mapreduce.am.command-opts</name>
-  <value>-Xmx1638m</value>
+  <value>-Xmx$commandopts$m</value>
 </property>
 
 </configuration>
@@ -470,8 +476,9 @@ su ubuntu -c "parallel-ssh -h /home/ubuntu/hosts.lst \"ln -s /etc/hadoop /usr/li
 
 # set master and slave nodes
 echo $mastername$ > /etc/hadoop/masters
+
+# $mastername$ would have to be added as well to the following file in order to start a slave on the master node
 cat - > /etc/hadoop/slaves << 'EOF'
-$mastername$
 ]]></hadoopstart>
 
 

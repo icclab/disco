@@ -25,10 +25,33 @@ from sm.log import LOG
 from sm.managers.Disco import Disco
 from sm.managers.generic import Task
 from sm.config import CONFIG
+from OpenstackDisco import OpenstackDisco
+from FileDeployer import FileDeployer
 
 __author__ = 'balazs'
 
 HEAT_VERSION = '1'
+
+class DeployerFactory:
+    @staticmethod
+    def get_deployer(arguments, extras):
+        attributes = {}
+        for key, value in arguments.iteritems():
+            if key.startswith("icclab.disco.deployer."):
+                attributes[key.replace("icclab.disco.deployer.","")] = value
+
+        if "type" in attributes:
+            if attributes["type"]=="FileDeployer":
+                return FileDeployer(attributes)
+
+        # default case: OpenstackDeployer
+        attributes["design_uri"] = CONFIG.get('service_manager', 'design_uri',
+                                              '')
+        attributes["token"] = extras["token"]
+        attributes["stack_name"] = 'disco_' + str(uuid.uuid1())
+        attributes["tenant_name"] = extras["tenant_name"]
+        return OpenstackDeployer(attributes)
+
 
 class Init(Task):
 
@@ -136,21 +159,12 @@ class Deploy(Task):
             LOG.debug(json.dumps(infoDict))
             self.entity.attributes['mcn.service.state'] = 'deploy'
 
-            argument = {'design_uri': CONFIG.get('service_manager', 'design_uri', ''),
-                                          'username': self.entity.attributes['icclab.disco.deployer.username'],
-                                          'tenant_name': self.extras['tenant_name'],
-                                          'password': self.entity.attributes['icclab.disco.deployer.password'],
-                                          'stack_name': 'disco_'+str(uuid.uuid1()),
-                                          'region': self.entity.attributes['icclab.disco.deployer.region'],
-                                          'token': self.extras['token']
-                        }
-
-            deployer = OpenstackDeployer(argument)
+            deployer = DeployerFactory.get_deployer(self.entity.attributes,self.extras)
 
             framework_directory = CONFIG.get('disco','framework_directory','')
 
             disco_config = {"deployer": deployer, "framework_directory": framework_directory, "root_component": "heat", "root_component_state": "end"}
-            discoinst = Disco(disco_config, self.entity.attributes)
+            discoinst = OpenstackDisco(disco_config, self.entity.attributes)
 
             #TODO: make dependency to add to a configuration
             # dependencies as {'dependency1': {'state1': {'value1': 'possible value','value2': None},
@@ -172,9 +186,14 @@ class Deploy(Task):
                         deps[dep_name] = {dep_state:{}}
                     discoinst.inject_dependency("shell", {"end": deps})
             except Exception as e:
-                self.entity.attributes['disco_status'] = 'dependency injection went wrong: %s' % e.message
-                self.entity.attributes['status'] = "deployment error: exception at the included dependencies - please refer to manual"
+                self.entity.attributes['disco_status'] = 'dependency injection ' \
+                                                         'went wrong: %s' % e.message
+                self.entity.attributes['status'] = "deployment error: exception " \
+                                                   "at the included dependencies " \
+                                                   "- please refer to manual"
                 self.entity.attributes['stackid'] = ""
+
+                #
                 return self.entity, self.extras
 
             # dependencies have to be resolved before property injection as the properties will require those same components
@@ -195,7 +214,12 @@ class Deploy(Task):
             properties = self.merge_dict({'heat': {'mastername': 'disco-manager', 'slavename': 'disco-worker'}},properties)
             discoinst.inject_requested_properties(properties)
 
-            stackinfo = discoinst.deploy()
+            stackinfo = discoinst.deploy(CONFIG.get('service_manager', 'design_uri', ''),
+                                         self.entity.attributes['icclab.disco.deployer.username'],
+                                         self.entity.attributes['icclab.disco.deployer.password'],
+                                         self.extras['tenant_name'],
+                                         self.entity.attributes['icclab.disco.components.heat.masterflavor']
+                                         )
             if not issubclass(stackinfo.__class__,Exception):
                 self.entity.attributes['stackid'] = stackinfo['stack']['id']
             else:
@@ -236,8 +260,6 @@ class Provision(Task):
         return self.entity, self.extras
 
 class Retrieve(Task):
-# the retrieve task will return the external IP of the created master VM as header value externalIP
-
     def __init__(self, entity, extras):
         Task.__init__(self, entity, extras, 'retrieve')
 
@@ -253,9 +275,6 @@ class Retrieve(Task):
         LOG.debug(json.dumps(infoDict))
         self.entity.attributes['mcn.service.state'] = 'retrieve'
 
-
-        # if no external IP has been assigned (because a possible error happened)
-        externalIP = "none"
         argument = {
             'design_uri': CONFIG.get('service_manager', 'design_uri', ''),
             'username': self.entity.attributes['icclab.disco.deployer.username'],
@@ -270,7 +289,7 @@ class Retrieve(Task):
         framework_directory = CONFIG.get('disco','framework_directory','')
 
         disco_config = {"deployer": deployer, "framework_directory": framework_directory, "root_component": "heat", "root_component_state": "end"}
-        discoinst = Disco(disco_config, self.entity.attributes)
+        discoinst = OpenstackDisco(disco_config, self.entity.attributes)
 
         if self.entity.attributes['stackid'] is not "":
             stackinfo = discoinst.retrieve(self.entity.attributes['stackid'], None)
@@ -279,7 +298,6 @@ class Retrieve(Task):
                     if output['output_value'] == None:
                         output['output_value'] = ""
                     self.entity.attributes[output['output_key']] = output['output_value']
-                # self.entity.attributes['externalIP'] = stackinfo['external_ip']
                 current_stack = deployer.hc.stacks.get(                    self.entity.attributes['stackid'])
                 self.entity.attributes['stack_status'] = copy.deepcopy(                    current_stack.stack_status)
 
@@ -344,7 +362,7 @@ class Destroy(Task):
         self.entity.attributes['mcn.service.state'] = 'destroy'
 
         # Do destroy work here
-        externalIP = "none"
+        #TODO: following might lead to problems if icclab.disco.deployer.* is used differently
         argument = {
             'design_uri': CONFIG.get('service_manager', 'design_uri', ''),
             'username': self.entity.attributes['icclab.disco.deployer.username'],
@@ -359,7 +377,7 @@ class Destroy(Task):
         framework_directory = CONFIG.get('disco','framework_directory','')
 
         disco_config = {"deployer": deployer, "framework_directory": framework_directory, "root_component": "shell", "root_component_state": "end"}
-        discoinst = Disco(disco_config, self.entity.attributes)
+        discoinst = OpenstackDisco(disco_config, self.entity.attributes)
 
         stackinfo = discoinst.delete(self.entity.attributes['stackid'])
 
