@@ -19,6 +19,7 @@ from Disco import Disco
 from keystoneauth1 import loading
 from keystoneauth1 import session
 from novaclient import client
+from OpenstackDeployer import HeatclientProvider
 
 NOVA_CLIENT_VERSION = 2
 
@@ -55,3 +56,24 @@ class OpenstackDisco(Disco):
         Disco.inject_requested_properties(self,parameters)
 
         return Disco.deploy(self)
+
+    def suspend(self):
+
+        hc = HeatclientProvider.get_heatclient({
+            "design_uri": self.params['icclab.disco.deployer.auth_url'],
+            "username": self.params['icclab.disco.deployer.username'],
+            "password": self.params['icclab.disco.deployer.password'],
+            "tenant_name": self.params['icclab.disco.deployer.tenant_name'],
+            "region": self.params['icclab.disco.deployer.region']
+        })
+        hc.actions.suspend(self.params["stackid"])
+
+    def resume(self):
+        hc = HeatclientProvider.get_heatclient({
+            "design_uri": self.params['icclab.disco.deployer.auth_url'],
+            "username": self.params['icclab.disco.deployer.username'],
+            "password": self.params['icclab.disco.deployer.password'],
+            "tenant_name": self.params['icclab.disco.deployer.tenant_name'],
+            "region": self.params['icclab.disco.deployer.region']
+        })
+        hc.actions.resume(self.params["stackid"])

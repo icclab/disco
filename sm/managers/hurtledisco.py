@@ -331,6 +331,26 @@ class Update(Task):
         self.entity.attributes['mcn.service.state'] = 'update'
 
         # Do update work here
+        self.entity.attributes['icclab.disco.deployer.auth_url'] = CONFIG.get('service_manager', 'design_uri', '')
+        self.entity.attributes['icclab.disco.deployer.tenant_name'] = self.extras['tenant_name']
+        deployer = DeployerFactory.get_deployer(self.entity.attributes,
+                                                self.extras)
+
+        framework_directory = CONFIG.get('disco', 'framework_directory', '')
+
+        disco_config = {"deployer": deployer,
+                        "framework_directory": framework_directory,
+                        "root_component": "heat", "root_component_state": "end"}
+        discoinst = OpenstackDisco(disco_config, self.entity.attributes)
+        try:
+            if self.new.attributes['action']=='suspend':
+                discoinst.suspend()
+                self.entity.attributes['runstate'] = 'suspended'
+            elif self.new.attributes['action']=='resume':
+                discoinst.resume()
+                self.entity.attributes['runstate'] = 'running'
+        except Exception as e:
+            LOG.error(str(e))
 
         elapsed_time = time.time() - self.start_time
         infoDict = {
