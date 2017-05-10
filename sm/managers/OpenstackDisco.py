@@ -30,19 +30,19 @@ class OpenstackDisco(Disco):
     def __init__(self, disco_config, params):
         Disco.__init__(self, disco_config, params)
 
-    def get_nova_client(self, auth_url, username, password, project_name):
+    def get_nova_client(self, auth_url, username, password, project_name, region):
         loader = loading.get_plugin_loader('password')
         auth = loader.load_from_options(auth_url     = auth_url,
                                         username     = username,
                                         password     = password,
                                         project_name = project_name)
         sess = session.Session(auth=auth)
-        nova = client.Client(NOVA_CLIENT_VERSION, session=sess)
+        nova = client.Client(NOVA_CLIENT_VERSION, session=sess, region_name=region)
         return nova
 
-    def deploy(self, auth_url, username, password, project_name, flavor_id):
+    def deploy(self, auth_url, username, password, project_name, region, flavor_id):
         # here, parameters have to be inserted into the "parameter" component
-        nova_client = self.get_nova_client(auth_url,username,password,project_name)
+        nova_client = self.get_nova_client(auth_url,username,password,project_name, region)
         deployed_flavor = nova_client.flavors.get(flavor_id)
         # deployed_flavor.{disk,vcpus,ram}
         parameters = {

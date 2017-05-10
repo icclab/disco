@@ -218,6 +218,7 @@ class Deploy(Task):
                                          self.entity.attributes['icclab.disco.deployer.username'],
                                          self.entity.attributes['icclab.disco.deployer.password'],
                                          self.extras['tenant_name'],
+                                         self.entity.attributes['icclab.disco.deployer.region'],
                                          self.entity.attributes['icclab.disco.components.heat.masterflavor']
                                          )
             if not issubclass(stackinfo.__class__,Exception):
