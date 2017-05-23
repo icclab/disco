@@ -60,13 +60,13 @@ But before we get to that point, let's install DISCO backend. This short guide w
     sudo python setup.py install
     ```
     
-4. Before you can start DISCO, you need to make a couple of changes in the sm.cfg configuration file within the etc subdirectory of DISCO. These values are:
+5. Before you can start DISCO, you need to make a couple of changes in the sm.cfg configuration file within the etc subdirectory of DISCO. These values are:
 
     - manifest: the path to the file service_manifest.json which is in the sm/managers/data subfolder of DISCO but could be at any other location.
     - design_uri: Keystone's public endpoint in OpenStack. (listed as "Identity")
     - framework_directory: the path of the directory under ./sm/managers/data which is containing all the components that can be installed through DISCO.
 
-5. As soon as these changes are made, you can start DISCO with the command
+6. As soon as these changes are made, you can start DISCO with the command
 
     ```
     service_manager -c /path/to/sm.cfg
@@ -74,6 +74,24 @@ But before we get to that point, let's install DISCO backend. This short guide w
     
     At this point, DISCO is running and you can issue the HTTP commands to create a cluster.
     
+7.  If you would like to prevent DISCO backend from filling your disk with log files, you can add a logrotate configuration for the log file. For this to happen, just edit the `/etc/logrotate.conf` file (assuming the default logrotate configuration file) and add the following lines at the end:
+
+    ```
+    /path/to/sm.log {
+        missingok
+        monthly
+        create 0660 ubuntu ubuntu
+        rotate 1
+    }
+    ```
+    
+    This configuration will move the log file once every month to a backup file and delete the old backup; the access rights will be set to rw for user/group ubuntu.
+    The configuration can be tested with the following command:
+    
+    ```
+    logrotate --force /etc/logrotate.conf
+    ```
+
 ### Creating a cluster
 
 In order to have a distributed computing cluster set up, you will need to issue a couple of HTTP commands. So let's have a look at those. Additionally, you will need a SSH public key registered within OpenStack which you can login with later on the cluster's master.
@@ -168,7 +186,6 @@ In order to have a distributed computing cluster set up, you will need to issue 
    You can actually access the whole logging status directory over a webserver on port 8084. (http://external_ip:8084) Here, you have even more information such as the entire terminal output during the deployment.
 
 6. If you would like to delete the cluster again, the following command will help you
-
     ```
     curl -v -X DELETE http://<DISCO IP>:8888/disco/$UUID \
     -H 'Category: disco; scheme="http://schemas.cloudcomplab.ch/occi/sm#"; class="kind";' \
@@ -176,8 +193,7 @@ In order to have a distributed computing cluster set up, you will need to issue 
     -H 'X-Tenant-Name: $OS_TENANT_NAME' \
     -H "X-Auth-Token: $TOKEN"
     ```
-
-7. After this last step, you can check with the command at a previous step that the cluster is not registered within DISCO anymore and the resources are freed. You can also double check that information on OpenStack Horizon. (Orchestration -> Stacks)
+    After this last step, you can check with the command at a previous step that the cluster is not registered within DISCO anymore and the resources are freed. You can also double check that information on OpenStack Horizon. (Orchestration -> Stacks)
 
 ### Documentation
 Comprehensive API reference and developer's guides, as well as troubleshooting pages are available in the Wiki section.
