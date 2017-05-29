@@ -60,13 +60,19 @@ But before we get to that point, let's install DISCO backend. This short guide w
     sudo python setup.py install
     ```
     
-5. Before you can start DISCO, you need to make a couple of changes in the sm.cfg configuration file within the etc subdirectory of DISCO. These values are:
+5. If you want to prevent the display of the InsecurePlatformWarning within Python, you have to install the secure version of urllib3:
+
+    ```
+    sudo pip install urllib3[secure]
+    ```
+
+6. Before you can start DISCO, you need to make a couple of changes in the sm.cfg configuration file within the etc subdirectory of DISCO. These values are:
 
     - manifest: the path to the file service_manifest.json which is in the sm/managers/data subfolder of DISCO but could be at any other location.
     - design_uri: Keystone's public endpoint in OpenStack. (listed as "Identity")
     - framework_directory: the path of the directory under ./sm/managers/data which is containing all the components that can be installed through DISCO.
 
-6. As soon as these changes are made, you can start DISCO with the command
+7. As soon as these changes are made, you can start DISCO with the command
 
     ```
     service_manager -c /path/to/sm.cfg
@@ -74,7 +80,7 @@ But before we get to that point, let's install DISCO backend. This short guide w
     
     At this point, DISCO is running and you can issue the HTTP commands to create a cluster.
     
-7.  If you would like to prevent DISCO backend from filling your disk with log files, you can add a logrotate configuration for the log file. For this to happen, just edit the `/etc/logrotate.conf` file (assuming the default logrotate configuration file) and add the following lines at the end:
+8.  If you would like to prevent DISCO backend from filling your disk with log files, you can add a logrotate configuration for the log file. For this to happen, just edit the `/etc/logrotate.conf` file (assuming the default logrotate configuration file) and add the following lines at the end:
 
     ```
     /path/to/sm.log {
