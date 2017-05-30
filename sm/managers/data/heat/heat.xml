@@ -39,14 +39,12 @@ Author: Balazs Meszaros
 
     <dependencies state="end">
 
-        <dependency name="shell" state="end">
-            <variable name="fake" />
+        <dependency name="parameters">
+            <variable name="uuid" />
         </dependency>
 
-		<dependency name="heat" state="start">
-			<variable name="fw2baz" />
-			<variable name="fw2foobar" />
-		</dependency>
+		<dependency name="heat" state="start" />
+        <dependency name="shell" state="end" />
 	</dependencies>
 
     <globaloutput />
@@ -220,15 +218,10 @@ resources:
   disco_sec_group:
     type: OS::Neutron::SecurityGroup
     properties:
-      name: security_group_-5a0014ab-b56c-11e6-8fca-34363b7e7806
+      name: security_group_-$uuid$
       rules: [
       {"direction":"ingress","protocol":"tcp","port_range_min":"22","port_range_max":"22"},
-      {"direction":"ingress","protocol":"tcp","port_range_min":"8025","port_range_max":"8088"},
-      {"direction":"ingress","protocol":"tcp","port_range_min":"34342","port_range_max":"34342"},
-      {"direction":"ingress","protocol":"tcp","port_range_min":"50010","port_range_max":"50105"},
-      {"direction":"ingress","protocol":"tcp","port_range_min":"54310","port_range_max":"54310"},
-      {"direction":"ingress","protocol":"icmp"},
-      {"direction":"ingress"}, # this setting is just for testing purposes
+      {"direction":"ingress","protocol":"tcp","port_range_min":"1000","port_range_max":"65535"}, # this setting is just for testing purposes
       {"direction":"egress"} # this setting is just for testing purposes
       ]
 

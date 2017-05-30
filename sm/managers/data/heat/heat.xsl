@@ -107,6 +107,8 @@ Author: Balazs Meszaros
             <parameter string="$slavename$" replace="{/discocomponent/properties/property[@name='slavename']/@value}" />
             <parameter string="$externalnetworkname$" replace="{/discocomponent/properties/property[@name='externalnetworkname']/@value}" />
             <parameter string="$networkname$" replace="{/discocomponent/properties/property[@name='networkname']/@value}" />
+            <parameter string="$uuid$" replace="{/discocomponent/dependencies/dependency[@name='parameters']/variable[@name='uuid']/text()
+}" />
         </xsl:variable>
 
     <xsl:template match="/discocomponent/output">

@@ -10,6 +10,7 @@
         <property name="disksize" />
         <property name="vcpunumber" />
         <property name="networkname" />
+        <property name="uuid" />
 
     </properties>
 

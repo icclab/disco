@@ -20,6 +20,7 @@ from keystoneauth1 import loading
 from keystoneauth1 import session
 from novaclient import client
 from OpenstackDeployer import HeatclientProvider
+import uuid
 
 NOVA_CLIENT_VERSION = 2
 
@@ -50,7 +51,8 @@ class OpenstackDisco(Disco):
                 {
                     'disksize': str(deployed_flavor.disk),
                     'memorysize': str(deployed_flavor.ram),
-                    'vcpunumber': str(deployed_flavor.vcpus)
+                    'vcpunumber': str(deployed_flavor.vcpus),
+                    'uuid': str(uuid.uuid4())
                 }
         }
         Disco.inject_requested_properties(self,parameters)
