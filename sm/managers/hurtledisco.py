@@ -22,7 +22,6 @@ import uuid
 
 from OpenstackDeployer import OpenstackDeployer
 from sm.log import LOG
-from sm.managers.Disco import Disco
 from sm.managers.generic import Task
 from sm.config import CONFIG
 from OpenstackDisco import OpenstackDisco
@@ -33,25 +32,30 @@ __author__ = 'balazs'
 HEAT_VERSION = '1'
 
 class DeployerFactory:
+    """
+    DeployerFactory creates a deployer instance from the given values over HTTP
+    """
     @staticmethod
     def get_deployer(arguments, extras):
         attributes = {}
+        # the HTTP parameters starting with icclab.disco.deployer. will be
+        # handled here
         for key, value in arguments.iteritems():
             if key.startswith("icclab.disco.deployer."):
                 attributes[key.replace("icclab.disco.deployer.","")] = value
 
+        # icclab.disco.deployer.type contains the deployer type
         if "type" in attributes:
             if attributes["type"]=="FileDeployer":
                 return FileDeployer(attributes)
 
-        # default case: OpenstackDeployer
+        # default case: OpenstackDeployer (if no deployer is mentioned)
         attributes["design_uri"] = CONFIG.get('service_manager', 'design_uri',
                                               '')
         attributes["token"] = extras["token"]
         attributes["stack_name"] = 'disco_' + str(uuid.uuid1())
         attributes["tenant_name"] = extras["tenant_name"]
         return OpenstackDeployer(attributes)
-
 
 class Init(Task):
 
@@ -120,9 +124,7 @@ class Deploy(Task):
     to be created on OpenStack and the SO has to be setup within it.
     """
     def __init__(self, entity, extras):
-
         Task.__init__(self, entity, extras, state='deploy')
-
         self.extras = extras
 
     def merge_dict(self, source, destination):
@@ -293,7 +295,7 @@ class Retrieve(Task):
         discoinst = OpenstackDisco(disco_config, self.entity.attributes)
 
         if self.entity.attributes['stackid'] is not "":
-            stackinfo = discoinst.retrieve(self.entity.attributes['stackid'], None)
+            stackinfo = discoinst.retrieve(self.entity.attributes['stackid'])
             try:
                 for output in stackinfo:
                     if output['output_value'] == None:

@@ -68,9 +68,9 @@ class OpenstackDeployer(Deployer):
 
     def deploy(self, heatTemplate):
         """Deploy given Heat template on Openstack.
-
+        :param heatTemplate:    Heat template as a string which describes the cluster
+        :return: stack.create's return value if successful, otherwise the thrown Exception
         """
-        randomstring = str(uuid.uuid1())
 
         # set the required attributes (stack name and Heat template) to what is needed
 
@@ -88,11 +88,10 @@ class OpenstackDeployer(Deployer):
             tmp = e
         return tmp
 
-    def retrieve(self, stack_id, requested_output):
+    def retrieve(self, stack_id):
         '''
         retrieve the requested output values given in list
         :param stack_id: ID of requested stack's outputs
-        :param output_values: requested output values' names as a list
         :return: each available requested output value as dictionary or None in case of exception
         '''
         current_stack = self.hc.stacks.get(stack_id)
@@ -100,11 +99,6 @@ class OpenstackDeployer(Deployer):
         return_value = {}
 
         try:
-            # later, all outputs will be iterated and the external_ip one chosen for status value
-            # structure of current_stack.outputs: [{u'output_value': u'86.119.27.2', u'description': u'The IP address of the deployed master node', u'output_key': u'external_ip'},{...},...]
-            # for element in current_stack.outputs:
-            #     if element['output_key'] in requested_output and element['output_value'] is not None:
-            #         return_value[element['output_key']] = element['output_value']
             return current_stack.outputs
         except:
             return None
@@ -113,6 +107,11 @@ class OpenstackDeployer(Deployer):
         return return_value
 
     def delete(self, stack_id):
+        """
+        delete will delete the stack with the given stack id from OpenStack
+        :param stack_id: stack's id on OpenStack
+        :return: True for successful, False otherwise
+        """
         try:
             body = {
                 'stack_id': stack_id

@@ -25,12 +25,15 @@ import sys
 
 class FileResolver(etree.Resolver):
     '''
-    thisclass is needed by the lxml parser
+    this class is needed by the lxml parser
     '''
     def resolve(self, url, pubid, context):
         return self.resolve_filename(url, context)
 
 class XMLNotConformingException(Exception):
+    '''
+    exception if no XML file is present for a component
+    '''
     def __init__(self, value):
         self.value = value
 
@@ -127,11 +130,6 @@ class Component():
         load values of each dependency into local dictionary and XML structure
         :return: self
         '''
-        # current_state = ""
-        # try:
-        #     self.xml.xpath("/discocomponent/properties/property[@name='state']")[0].attrib['value']
-        # except:
-        #     pass
         deps = self.xml.xpath("/discocomponent/dependencies/*")
         for component in deps:
             current_variables = component.xpath("variable")
@@ -388,14 +386,9 @@ class Component():
             pass
         transform = etree.XSLT(xslt_tree)
 
-        oldstring = etree.tostring(self.xml, pretty_print=True)
-        # print(etree.tostring(self.xml))
-        # print("xslt: "+etree.tostring(xslt_tree))
         result = transform(self.xml)
-        newstring = etree.tostring(result, pretty_print=True)
-        result_string = etree.tostring(result)
-        result_strings = result.xpath("/discocomponent/output/text()")
-        return result #''.join(str(elem) for elem in result_strings)
+
+        return result
 
     def get_output_type(self):
         '''

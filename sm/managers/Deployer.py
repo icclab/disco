@@ -20,7 +20,7 @@ class Deployer:
     def deploy(self, heatString):
         None
 
-    def retrieve(self, id, output_values):
+    def retrieve(self, id):
         None
 
     def delete(self, id):

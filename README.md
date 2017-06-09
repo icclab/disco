@@ -85,6 +85,7 @@ But before we get to that point, let's install DISCO backend. This short guide w
     ```
     /path/to/sm.log {
         missingok
+        notifempty
         monthly
         create 0660 ubuntu ubuntu
         rotate 1

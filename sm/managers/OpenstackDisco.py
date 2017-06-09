@@ -25,6 +25,11 @@ import uuid
 NOVA_CLIENT_VERSION = 2
 
 class OpenstackDisco(Disco):
+    """
+    OpenstackDisco is an intermediary class between class Disco and Hurtle
+    which abstracts a few properties of Openstack such as the suspension /
+    resume of stacks or the parametrisation of Openstack related entities
+    """
     deployer = None
     params = None
 
@@ -32,6 +37,15 @@ class OpenstackDisco(Disco):
         Disco.__init__(self, disco_config, params)
 
     def get_nova_client(self, auth_url, username, password, project_name, region):
+        """
+        the Nova client is used for retrieving data of Openstack components
+        :param auth_url: OS_AUTH_URL
+        :param username: OS_USERNAME
+        :param password: OS_PASSWORD
+        :param project_name: OS_TENANT_NAME
+        :param region: OS_REGION
+        :return: nova client instance
+        """
         loader = loading.get_plugin_loader('password')
         auth = loader.load_from_options(auth_url     = auth_url,
                                         username     = username,
@@ -42,10 +56,28 @@ class OpenstackDisco(Disco):
         return nova
 
     def deploy(self, auth_url, username, password, project_name, region, flavor_id):
+        """
+        deployment of the cluster on Openstack
+        :param auth_url: OS_AUTH_URL
+        :param username: OS_USERNAME
+        :param password: OS_PASSWORD
+        :param project_name: OS_TENANT_NAME
+        :param region: OS_REGION
+        :param flavor_id: flavor of the deployed slaves
+        :return: return value of the base class' deploy method
+        """
+
         # here, parameters have to be inserted into the "parameter" component
-        nova_client = self.get_nova_client(auth_url,username,password,project_name, region)
+        nova_client = self.get_nova_client( auth_url,
+                                            username,
+                                            password,
+                                            project_name,
+                                            region)
+
+        # retrieval of the flavor to be deployed for its properties
         deployed_flavor = nova_client.flavors.get(flavor_id)
-        # deployed_flavor.{disk,vcpus,ram}
+
+        # set the required properties within the parameters component
         parameters = {
             'parameters':
                 {
@@ -57,10 +89,13 @@ class OpenstackDisco(Disco):
         }
         Disco.inject_requested_properties(self,parameters)
 
+        # call the base class' deploy method and return its return value
         return Disco.deploy(self)
 
     def suspend(self):
-
+        """
+        suspend the currently deployed cluster
+        """
         hc = HeatclientProvider.get_heatclient({
             "design_uri": self.params['icclab.disco.deployer.auth_url'],
             "username": self.params['icclab.disco.deployer.username'],
@@ -71,6 +106,9 @@ class OpenstackDisco(Disco):
         hc.actions.suspend(self.params["stackid"])
 
     def resume(self):
+        """
+        resume the suspended cluster
+        """
         hc = HeatclientProvider.get_heatclient({
             "design_uri": self.params['icclab.disco.deployer.auth_url'],
             "username": self.params['icclab.disco.deployer.username'],
