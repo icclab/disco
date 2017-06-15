@@ -24,6 +24,7 @@ Author: Balazs Meszaros
 		<property name="property" value="something else" />
         <property name="included" value="false" />
 		<property name="outputtype" value="replace" />
+		<property name="openports" value="8088" />
     </properties>
 
 	<dependencies>

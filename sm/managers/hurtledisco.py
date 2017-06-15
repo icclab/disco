@@ -186,7 +186,10 @@ class Deploy(Task):
                         if dep_state=="":
                             dep_state="default"
                         deps[dep_name] = {dep_state:{}}
+                        portdep = {dep_name: {'default': 'openports'}}
+                        discoinst.inject_dependency("heat", {"end": portdep})
                     discoinst.inject_dependency("shell", {"end": deps})
+                discoinst.inject_dependency('heat', {'end': {'shell': {'start': 'openports'}}})
             except Exception as e:
                 self.entity.attributes['disco_status'] = 'dependency injection ' \
                                                          'went wrong: %s' % e.message
@@ -231,6 +234,8 @@ class Deploy(Task):
 
         except Exception as e:
             LOG.debug(e.message)
+            self.entity.attributes['status'] = "deployment didn't work out because: %s" % str(e.message)
+            self.entity.attributes['error'] = str(e.message)
         return self.entity, self.extras
 
 
@@ -294,7 +299,8 @@ class Retrieve(Task):
         disco_config = {"deployer": deployer, "framework_directory": framework_directory, "root_component": "heat", "root_component_state": "end"}
         discoinst = OpenstackDisco(disco_config, self.entity.attributes)
 
-        if self.entity.attributes['stackid'] is not "":
+        if 'stackid' in self.entity.attributes and \
+            self.entity.attributes['stackid'] is not "":
             stackinfo = discoinst.retrieve(self.entity.attributes['stackid'])
             try:
                 for output in stackinfo:

@@ -23,6 +23,7 @@ Author: Balazs Meszaros
         <property name="staticoutput" value="true" />
         <property name="included" value="false" />
 		<property name="outputtype" value="append" />
+		<property name="openports" value="8888" />
     </properties>
 
 	<dependencies>
@@ -93,7 +94,7 @@ EOF
 chown ubuntu:ubuntu /home/ubuntu/.jupyter/jupyter_notebook_config.py
 
 cd jupyter
-su ubuntu -c "sh -c '. bin/activate;jupyter notebook' &"
+su ubuntu -c "sh -c '. bin/activate;jupyter notebook --debug > /home/ubuntu/jupyter/notebook.log 2>&1' &"
 
 deploymentLog "jupyter ready"
 # jupyter is installed and running

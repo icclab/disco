@@ -98,6 +98,9 @@ class OpenstackDeployer(Deployer):
 
         return_value = {}
 
+        if current_stack.stack_status=="CREATE_FAILED":
+            current_stack.outputs.append({'output_key':'stack_status_reason','output_value':current_stack.stack_status_reason})
+
         try:
             return current_stack.outputs
         except:

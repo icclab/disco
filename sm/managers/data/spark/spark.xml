@@ -23,6 +23,7 @@ Author: Balazs Meszaros
         <property name="staticoutput" value="false" />
         <property name="included" value="false" />
 		<property name="outputtype" value="append" />
+		<property name="openports" value="8080,18080" />
     </properties>
 
 	<dependencies>

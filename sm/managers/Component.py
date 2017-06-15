@@ -186,10 +186,28 @@ class Component():
     def add_dependencies(self, new_dependencies):
         '''
         add a tree of dependencies defined in the given dictionary
-        parameter is of the type {'state1': {'dependency1': {'dep1state1': {'value1': 'possible value','value2': None}, ...},
-                                                ... },
-                                  'state2': {}
-                                  }
+        parameter is of the type
+
+        {
+            'state1':
+            {
+                'dependency1':
+                    {
+                        'dep1state1':
+                            {
+                                'value1': 'possible value',
+                                'value2': None},
+                                ...
+                            },
+                            ...
+                    },
+            },
+            'state2':
+                {
+                    ...
+                }
+        }
+
         if state is set to string(default), it means that no state will be set
         :param new_dependencies: dictionary of dependencies
         :return: self
@@ -228,6 +246,8 @@ class Component():
                         dependencies_element.insert(0, new_dependency_element)
                     else:
                         new_dependency_element = dependencies_element.xpath("dependency[@name='"+dep+"'][@state='"+dep_state+"']")
+
+
 
             # here, new dependency has been added up to the state level
             #TODO: if variables are to be added, this would come here

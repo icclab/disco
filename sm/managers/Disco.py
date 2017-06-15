@@ -104,7 +104,10 @@ class Disco:
                                         ...},
                           'dependency2': {}
                           }
-        :param component_name: string of the component's name to be injected into
+        :param component_name: string of the componen
+
+
+        t's name to be injected into
         :param dependencies: which dependencies (formatting see above)
         :return:
         '''
@@ -134,6 +137,10 @@ class Disco:
             # each state of the depending components have to be handled
             for state, dep in deps.iteritems():
                 # e.g. state='start', dep={}
+
+                # check whether a component with name saved in comp exists
+                if not comp in self.components:
+                    raise Exception('No component %s registered' % (comp))
 
                 # check whether current dependent component with requested
                 # state is resolved already

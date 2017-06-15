@@ -39,8 +39,8 @@ Author: Balazs Meszaros
 
     <dependencies state="end">
 
-        <dependency name="parameters">
-            <variable name="uuid" />
+        <dependency name="parameters" state="default">
+            <variable name="uuid" state="default" />
         </dependency>
 
 		<dependency name="heat" state="start" />
@@ -221,8 +221,14 @@ resources:
       name: security_group_-$uuid$
       rules: [
       {"direction":"ingress","protocol":"tcp","port_range_min":"22","port_range_max":"22"},
-      {"direction":"ingress","protocol":"tcp","port_range_min":"1000","port_range_max":"65535"}, # this setting is just for testing purposes
-      {"direction":"egress"} # this setting is just for testing purposes
+      {"direction":"ingress","protocol":"tcp","port_range_min":"8088","port_range_max":"8088"},
+      {"direction":"ingress","protocol":"tcp","port_range_min":"8080","port_range_max":"8080"},
+      {"direction":"ingress","protocol":"tcp","port_range_min":"18080","port_range_max":"18080"},
+      {"direction":"ingress","protocol":"tcp","port_range_min":"8888","port_range_max":"8888"},
+      {"direction":"ingress","protocol":"tcp","port_range_min":"8070","port_range_max":"8070"},
+      {"direction":"ingress","protocol":"tcp","port_range_min":"8084","port_range_max":"8084"},
+      {"direction":"ingress","protocol":"tcp","port_range_min":"1","port_range_max":"65535","remote_ip_prefix": {get_param: cluster_subnet_cidr} },
+      {"direction":"egress"}
       ]
 
   disco_network:

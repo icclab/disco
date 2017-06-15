@@ -25,6 +25,7 @@ Author: Balazs Meszaros
         <property name="included" value="false" />
 		<property name="outputtype" value="append" />
 		<property name="state" />
+		<property name="openports" value="22,8084" />
     </properties>
 
 	<dependencies state="start">

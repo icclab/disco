@@ -76,6 +76,30 @@ Author: Balazs Meszaros
         </xsl:template>
 
 
+
+    <xsl:template name="composeports">
+        <!--passed template parameter -->
+        <xsl:param name="list"/>
+        <xsl:param name="delimiter"/>
+        <xsl:choose>
+<xsl:when test="contains($list, $delimiter)"><xsl:text>{"direction":"ingress","protocol":"tcp","port_range_min":"</xsl:text><xsl:value-of select="substring-before($list,$delimiter)"/><xsl:text>","port_range_max":"</xsl:text><xsl:value-of select="substring-before($list,$delimiter)"/><xsl:text>"},</xsl:text>
+                <xsl:call-template name="composeports">
+                    <xsl:with-param name="list" select="substring-after($list,$delimiter)"/>
+                    <xsl:with-param name="delimiter" select="$delimiter"/>
+                </xsl:call-template>
+            </xsl:when>
+            <xsl:otherwise>
+                <xsl:choose>
+                    <xsl:when test="$list = ''">
+                        <xsl:text/>
+                    </xsl:when>
+                    <xsl:otherwise><xsl:text>{"direction":"ingress","protocol":"tcp","port_range_min":"</xsl:text><xsl:value-of select="$list"/><xsl:text>","port_range_max":"</xsl:text><xsl:value-of select="$list"/><xsl:text>"},</xsl:text>
+                    </xsl:otherwise>
+                </xsl:choose>
+            </xsl:otherwise>
+        </xsl:choose>
+    </xsl:template>
+
 		<xsl:template name="replace-string">
 		    <xsl:param name="text"/>
 		    <xsl:param name="replace"/>
@@ -135,6 +159,22 @@ Author: Balazs Meszaros
             <xsl:copy>
                 <xsl:value-of select="heat:replace(/discocomponent/parameterssection/text(),$parameterreplace)" />
                 <xsl:value-of select="heat:replace(/discocomponent/resourcessection/text(),$parameterreplace)" />
+
+                <!--<xsl:value-of select="heat:replace(/discocomponent/resourcessectionstart/text(),$parameterreplace)" />-->
+
+
+                <!--<xsl:for-each select="/discocomponent/dependencies/dependency/variable[@name='openports']/text()">-->
+
+ <!--<xsl:call-template name="composeports">-->
+                    <!--<xsl:with-param name="list" select="."/>-->
+                    <!--<xsl:with-param name="delimiter" select="','"/>-->
+<!--</xsl:call-template>-->
+
+    <!--</xsl:for-each>-->
+
+
+
+                <!--<xsl:value-of select="heat:replace(/discocomponent/resourcessectionend/text(),$parameterreplace)" />-->
             </xsl:copy>
         </xsl:if>
     </xsl:template>
