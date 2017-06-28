@@ -60,17 +60,17 @@ su ubuntu -c "parallel-ssh -t 2000 -h /home/ubuntu/hosts.lst \"tar -xzf /usr/lib
 su ubuntu -c "parallel-ssh -t 2000 -h ~/hosts.lst \"mv spark-2.1.0-bin-hadoop2.7 /usr/lib/spark\""
 su ubuntu -c "parallel-ssh -t 2000 -h ~/hosts.lst \"ln -s /usr/lib/spark/spark-2.1.0-bin-hadoop2.7/ /usr/lib/spark/spark\""
 
-su ubuntu -c "/usr/lib/hadoop/hadoop/bin/hdfs dfs -mkdir /sparkoutput"
+# su ubuntu -c "/usr/lib/hadoop/hadoop/bin/hdfs dfs -mkdir /sparkoutput"
 
 # create default config file for Spark
 cat - > /home/ubuntu/spark-default.conf << 'EOF'
 spark.master    yarn
 spark.eventLog.enabled	true
-spark.eventLog.dir hdfs://$mastername$:54310/sparkoutput
+spark.eventLog.dir /usr/lib/spark/spark/logs
 spark.history.ui.port 18080
 spark.yarn.historyServer.address $mastername$:18080
 spark.history.provider org.apache.spark.deploy.history.FsHistoryProvider
-spark.history.fs.logDirectory hdfs://$mastername$:54310/sparkoutput
+spark.history.fs.logDirectory /usr/lib/spark/spark/logs
 EOF
 
 su ubuntu -c "parallel-scp -h ~/hosts.lst /home/ubuntu/spark-default.conf /usr/lib/spark/spark/conf/spark-defaults.conf"
