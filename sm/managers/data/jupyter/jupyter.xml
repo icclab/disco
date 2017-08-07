@@ -20,10 +20,11 @@ Author: Balazs Meszaros
 <discocomponent>
     <properties>
         <!-- these properties can be set over HTTP parameters as well; they will be inserted automatically -->
-        <property name="staticoutput" value="true" />
+        <property name="staticoutput" value="false" />
         <property name="included" value="false" />
 		<property name="outputtype" value="append" />
 		<property name="openports" value="8888" />
+		<property name="password" />
     </properties>
 
 	<dependencies>
@@ -49,7 +50,7 @@ install:
 
 -->
 
-	<output>
+	<jupyterinstall>
 <![CDATA[
 # instead of installing jupyter and its dependencies over public apt-get and
 # pip repositories, the sources and packages will be downloaded from a private
@@ -94,13 +95,35 @@ EOF
 chown ubuntu:ubuntu /home/ubuntu/.jupyter/jupyter_notebook_config.py
 
 cd jupyter
-su ubuntu -c "sh -c '. bin/activate;jupyter notebook --debug > /home/ubuntu/jupyter/notebook.log 2>&1' &"
+
+cat - >> /home/ubuntu/jupyter/jupyter/createpassword.py << 'EOF'
+import os
+import random
+import hashlib
+
+salt_len = 12
+passphrase = "$jupyterpassword$"
+algorithm = "sha1"
+
+h = hashlib.new(algorithm)
+salt = ('%0' + str(salt_len) + 'x') % random.getrandbits(4 * salt_len)
+h.update(passphrase + salt)
+
+print( ':'.join((algorithm, salt, h.hexdigest())))
+
+EOF
+
+echo "export NOTEBOOK_PASSWORD="`python /home/ubuntu/jupyter/jupyter/createpassword.py` >> /etc/environment
+
+rm /home/ubuntu/jupyter/jupyter/createpassword.py
+
+su ubuntu -c "sh -c '. bin/activate;source /etc/environment;jupyter notebook --debug > /home/ubuntu/jupyter/notebook.log 2>&1' &"
 
 deploymentLog "jupyter ready"
 # jupyter is installed and running
 ]]>
-</output>
+</jupyterinstall>
 
-
+<output />
 
 </discocomponent>
