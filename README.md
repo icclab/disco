@@ -42,6 +42,8 @@ But before we get to that point, let's install DISCO backend. This short guide w
     sudo pip install --upgrade <package name>
     ```
     
+    *NOTE*: Depending on your system, you might have to install other packages such as pynacl, cryptography, python-novaclient or others. Potential error messages during the installation process will make you aware of those. In that case, just install them like urllib3[secure] under 5.
+    
 3. Let's install the SDK now:
     
     ```
