@@ -49,16 +49,16 @@ deploymentLog "downloading Apache Spark to master node"
 su ubuntu -c "sudo mkdir /home/ubuntu/spark"
 cd /home/ubuntu/spark
 chown ubuntu:ubuntu /home/ubuntu/spark
-su ubuntu -c "wget http://reposerver/spark/spark-2.1.0-bin-hadoop2.7.tgz"
+su ubuntu -c "wget http://reposerver/spark/spark-2.2.0-bin-hadoop2.7.tgz"
 
 su ubuntu -c "parallel-ssh -t 2000 -h /home/ubuntu/hosts.lst \"sudo sh -c \\\"echo \\\\\\\"SPARK_HOME=\\\\\\\\\\\\\\\"/usr/lib/spark/spark\\\\\\\\\\\\\\\"\\\\nJAVA_HOME=\\\\\\\\\\\\\\\"/usr/lib/java/jdk\\\\\\\\\\\\\\\"\\\\\\\" >> \\\/etc\\\/environment\\\"\""
 su ubuntu -c "parallel-ssh -t 2000 -h ~/hosts.lst \"sudo mkdir /usr/lib/spark\""
 su ubuntu -c "parallel-ssh -t 2000 -h ~/hosts.lst \"sudo chown ubuntu:ubuntu /usr/lib/spark/\""
-su ubuntu -c "parallel-scp -h ~/hosts.lst ~/spark/spark-2.1.0-bin-hadoop2.7.tgz /usr/lib/spark"
-su ubuntu -c "parallel-ssh -t 2000 -h /home/ubuntu/hosts.lst \"tar -xzf /usr/lib/spark/spark-2.1.0-bin-hadoop2.7.tgz\""
-#su ubuntu -c "parallel-ssh -t 2000 -h ~/hosts.lst \"mv spark-2.1.0-bin-hadoop2.7 /usr/lib/spark/\""
-su ubuntu -c "parallel-ssh -t 2000 -h ~/hosts.lst \"mv spark-2.1.0-bin-hadoop2.7 /usr/lib/spark\""
-su ubuntu -c "parallel-ssh -t 2000 -h ~/hosts.lst \"ln -s /usr/lib/spark/spark-2.1.0-bin-hadoop2.7/ /usr/lib/spark/spark\""
+su ubuntu -c "parallel-scp -h ~/hosts.lst ~/spark/spark-2.2.0-bin-hadoop2.7.tgz /usr/lib/spark"
+su ubuntu -c "parallel-ssh -t 2000 -h /home/ubuntu/hosts.lst \"tar -xzf /usr/lib/spark/spark-2.2.0-bin-hadoop2.7.tgz\""
+#su ubuntu -c "parallel-ssh -t 2000 -h ~/hosts.lst \"mv spark-2.2.0-bin-hadoop2.7 /usr/lib/spark/\""
+su ubuntu -c "parallel-ssh -t 2000 -h ~/hosts.lst \"mv spark-2.2.0-bin-hadoop2.7 /usr/lib/spark\""
+su ubuntu -c "parallel-ssh -t 2000 -h ~/hosts.lst \"ln -s /usr/lib/spark/spark-2.2.0-bin-hadoop2.7/ /usr/lib/spark/spark\""
 
 # su ubuntu -c "/usr/lib/hadoop/hadoop/bin/hdfs dfs -mkdir /sparkoutput"
 
