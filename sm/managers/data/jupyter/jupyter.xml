@@ -57,6 +57,9 @@ install:
 # repository server
 su ubuntu -c "mkdir /home/ubuntu/jupyter"
 cd /home/ubuntu/jupyter
+su ubuntu -c "wget http://reposerver/apt-get/python3-dev.tar.gz"
+su ubuntu -c "tar -xzf /home/ubuntu/jupyter/python3-dev.tar.gz"
+dpkg -i /home/ubuntu/jupyter/python3-dev/*.deb
 su ubuntu -c "wget http://reposerver/jupyter/jupyter-virtenv.tar.gz"
 su ubuntu -c "tar -xzf /home/ubuntu/jupyter/jupyter-virtenv.tar.gz"
 

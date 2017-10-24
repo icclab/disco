@@ -221,6 +221,24 @@ limitations under the License. See accompanying LICENSE file.
 </property>
 
 <property>
+  <name>mapreduce.map.log.level</name>
+  <value>INFO</value>
+  <description>The logging level for the map task. The allowed levels are: OFF,
+  FATAL, ERROR, WARN, INFO, DEBUG, TRACE and ALL. The setting here could be
+  overridden if "mapreduce.job.log4j-properties-file" is set.
+  </description>
+</property>
+
+<property>
+  <name>mapreduce.reduce.log.level</name>
+  <value>INFO</value>
+  <description>The logging level for the reduce task. The allowed levels are:
+  OFF, FATAL, ERROR, WARN, INFO, DEBUG, TRACE and ALL. The setting here could
+  be overridden if "mapreduce.job.log4j-properties-file" is set.
+  </description>
+</property>
+
+<property>
   <name>mapreduce.map.java.opts</name>
   <value>-Xmx$mapjavaopts$m</value>
 </property>
@@ -304,14 +322,31 @@ limitations under the License. See accompanying LICENSE file.
 <!-- Put site-specific property overrides in this file. -->
 
 <configuration>
-<property>
-  <name>dfs.replication</name>
-  <value>$replicationfactor$</value>
-  <description>Default block replication.
-  The actual number of replications can be specified when the file is created.
-  The default is used if replication is not specified in create time.
-  </description>
-</property>
+	<property>
+	  <name>dfs.replication</name>
+	  <value>$replicationfactor$</value>
+	  <description>Default block replication.
+	  The actual number of replications can be specified when the file is created.
+	  The default is used if replication is not specified in create time.
+	  </description>
+	</property>
+
+	<property>
+	  <name>dfs.datanode.du.reserved</name>
+	  <value>25000000000</value>
+	  <description>Reserved space in bytes per volume. Always leave this much space free for non dfs use.
+	  </description>
+	</property>
+
+	<property>
+		<name>dfs.datanode.fsdataset.volume.choosing.policy</name>
+		<value>org.apache.hadoop.hdfs.server.datanode.fsdataset.AvailableSpaceVolumeChoosingPolicy</value>
+	</property>
+
+	<property>
+		<name>dfs.datanode.available-space-volume-choosing-policy.balanced-space-preference-fraction</name>
+		<value>1.0</value>
+	</property>
 </configuration>
 
 EOF
@@ -367,6 +402,9 @@ done
 
 # Extra Java runtime options.  Empty by default.
 export HADOOP_OPTS="$HADOOP_OPTS -Djava.net.preferIPv4Stack=true"
+
+# Set Hadoop log to INFO level - for WARN, just change INTO to WARN in this and the next few commands
+# export HADOOP_ROOT_LOGGER=INFO,DRFA
 
 # Command specific options appended to HADOOP_OPTS when specified
 export HADOOP_NAMENODE_OPTS="-Dhadoop.security.logger=${HADOOP_SECURITY_LOGGER:-INFO,RFAS} -Dhdfs.audit.logger=${HDFS_AUDIT_LOGGER:-INFO,NullAppender} -XX:+UseParallelGC $HADOOP_NAMENODE_OPTS"
